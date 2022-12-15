@@ -18,6 +18,7 @@ var svg = d3.select("body")
     .attr("height", size * scale_up);
 
 svg.append("circle")
+    .attr("id", "scalp_map")
     .attr("cx", size/2 * scale_up)
     .attr("cy", size/2 * scale_up)
     .attr("r", size/2 * scale_up)
@@ -33,7 +34,7 @@ var tooltip = d3.select("body")
 function showTooltip(label, event){
     d3.select("#tooltip")
     .text(label)
-    .style("top", (event.pageY-35)+"px").style("left",(event.pageX-20)+"px");
+    .style("top", (event.pageY-40)+"px").style("left",(event.pageX-25)+"px");
 }
 
 for (var i = 0; i <= 31; i++){
