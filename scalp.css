@@ -1,6 +1,11 @@
 
 #tooltip {
-    border: 2px solid #000;
+    border: 1px solid #000;
+    background-color: white;
     border-radius: 15%;
-    padding: 5px;
+    height: 30px;
+    width: 40px;
+    display: flex;
+    align-items:center;
+    justify-content:center;
 }
