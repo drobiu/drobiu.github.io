@@ -82,17 +82,31 @@ d3.csv("/data/eeg-lab-sample-export.csv", function (data) {
     single_names.push(data_obj.value_name);
 
     j++;
+
+    //red, yellow, green, light_blue, blue
+    var colors = ["#fbff00","#fbff00","#00ff1a","#00f7ff","#0400ff"]
+
+    var domain = [-1];
+    var increment = 2/(colors.length-1);
+    for (var i=0; i<colors.length-2; i++){
+        var previous = domain[domain.length-1];
+        domain.push(previous+increment);
+    }
+    domain.push(1);
+
     if (j == 32){
-        var col = d3.interpolateRgb("purple", "orange");
+
+        var getColor = d3.scaleLinear()
+            .domain(domain)
+            .range(colors);
+
         var max = Math.max.apply(null, single_values);
         var min = Math.min.apply(null, single_values);
         for (i = 0; i < single_values.length; i++){
-            var norm = ((single_values[i]-min)/(max - min))
+            var norm = 2*((single_values[i]-min)/(max - min))-1;
             single_values[i] = norm;
-            d3.select("#" + single_names[i]).attr("fill", col(norm));
-            //console.log(col(norm));
+            d3.select("#" + single_names[i]).attr("fill", getColor(norm));
         }
-        //console.log(single_values);
     }
 });
 
