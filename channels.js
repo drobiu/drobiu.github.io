@@ -1,19 +1,5 @@
-d3.csv("/eeg-lab-example-yes-transpose-min.csv").then(data => {
-  // const data = d3.range(25).map(i => ({
-  //   bib: Math.floor(i / 5) + 1,
-  //   ratio: -1 + Math.random() * 5,
-  //   run: [1, 2, 3, 4, 5][i % 5],
-  //   run: [1, 2, 3, 4, 5][i % 5],
-  //   name: ['metric1', 'metric2', 'metric3', 'metric4', 'metric5'][Math.floor(i / 5)]
-  // }));
-
-  // const grouped = d3.group(data,d=>d.bib);
-
-  // console.log(data)
-
-  // let grouped = d3.group(eeg1, d => d.name && d.name !== 'time')
-
-  let grouped = new Map(data.columns
+d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
+  const grouped = new Map(data.columns
     .filter(c => c !== 'Time')
     .map(c => [c,
       data.map(v => (
@@ -125,8 +111,8 @@ d3.csv("/eeg-lab-example-yes-transpose-min.csv").then(data => {
         .y(d => yScale(d.value))
         (d[1])
     })
-    .attr("stroke", "#333")
-    .attr("stroke-width", 1)
+    .attr("stroke", "#000000")
+    // .attr("stroke-width", 1)
     .attr("fill", "none")
 
   // // Plot names if needed:
@@ -141,7 +127,9 @@ d3.csv("/eeg-lab-example-yes-transpose-min.csv").then(data => {
   // Plot axes     
   plots.append("g")
     .attr("transform", "translate(" + [0, plotHeight] + ")")
-    .call(d3.axisBottom(xScale).ticks(4));
+    .call(d3.axisBottom(xScale)
+    // .ticks(4)
+    );
 
   plots.append("g")
     .attr("transform", "translate(" + [-padding, 0] + ")")
@@ -153,7 +141,7 @@ d3.csv("/eeg-lab-example-yes-transpose-min.csv").then(data => {
     const selection = event.selection;
     if (selection === null) {
       console.log(`no selection`);
-      
+
       // circle.attr("stroke", null);
     } else {
       console.log(selection.map(xScale.invert))
