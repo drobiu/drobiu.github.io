@@ -145,6 +145,7 @@ d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
       // circle.attr("stroke", null);
     } else {
       console.log(selection.map(xScale.invert))
+      update(selection.map(xScale.invert));
 
       // const [x0, x1] = selection.map(x.invert);
       // circle.attr("stroke", d => x0 <= d && d <= x1 ? "red" : null);
