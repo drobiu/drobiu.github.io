@@ -1,0 +1,9 @@
+#wrapper {
+    border: 1px solid blue;
+}
+#chart1 {
+    display: inline-block;
+}
+#chart2 {
+    display: inline-block;
+}

@@ -1,13 +1,13 @@
-data = d3.json("/data/eeg.json").then(data => {
-    console.log("Hi!");
-    width = 720;
+d3.json("/data/eeg.json").then(data => {
+    width = 700;
     height = 480;
+    ranges = [0, 1000];
 
     margin = { top: 20, right: 30, bottom: 30, left: 60 }
 
     size = 100;
 
-    svg = d3.select("body")
+    svg = d3.select("#chart2")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
@@ -23,13 +23,11 @@ data = d3.json("/data/eeg.json").then(data => {
 
     data_length = data_dict['time'].length;
 
-    console.log(data_length)
     f = 1/data_dict['time'][1];
 
     value_names = Object.keys(data_dict);
 
     select = document.getElementById('selector');
-    console.log(select)
 
     for (var i = 1; i < value_names.length; i++) {
         var div = document.createElement('div');
@@ -44,35 +42,15 @@ data = d3.json("/data/eeg.json").then(data => {
         div.appendChild(checkbox);
         div.appendChild(label);
         select.appendChild(div);
-    }
 
-    legend = document.createElement('legend');
-    legend.innerHTML = 'Select range and offset.';
-    select.appendChild(legend);
-
-    ranges = ['Range', 'Offset'];
-    minima = [1000, 0];
-    maxima = [data_length-1000, data_length];
-
-    for (var i = 0; i < ranges.length; i++) {
-        var div = document.createElement('div');
-        var range = document.createElement('input');
-        range.setAttribute('type', 'range');
-        range.setAttribute('id', ranges[i]);
-        range.setAttribute('min', minima[i]);
-        range.setAttribute('max', maxima[i]);
-        range.setAttribute('name', ranges[i]);
-        range.setAttribute('onclick', 'update()');
-        var label = document.createElement('label');
-        label.setAttribute('for', ranges[i]);
-        label.innerHTML = ranges[i];
-        div.appendChild(range);
-        div.appendChild(label);
-        select.appendChild(div);
+        // DELETE LATER
+        if (i == 1) {
+            checkbox.checked = true;
+        }
     }
 });
 
-function update() {
+function update(range_vals) {
     svg.selectAll("*").remove();
     checked = [];
 
@@ -83,24 +61,19 @@ function update() {
         }
     }
 
-    range_vals = [];
-
-    for (var i = 0; i < ranges.length; i++) {
-        range = document.getElementById(ranges[i]);
-        range_vals.push(parseInt(range.value));
+    if (range_vals === undefined) {
+        range_vals = ranges;
     }
 
-    console.log(range_vals)
+    ranges = range_vals;
 
     xy = [];
     for (var i = 0; i < checked.length; i++) {
         ranged_data = []
-        for (var j = range_vals[1]; j < Math.min(range_vals[0] + range_vals[1], data_length); j++) {
+        for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), data_length); j++) {
             ranged_data.push(parseFloat(data_dict[checked[i]][j]));
         }
-        console.log(ranged_data)
         psd = bci.welch(ranged_data, f);
-        console.log(psd)
         xy = plot(psd.frequencies, psd.estimates, svg)
     }
 
