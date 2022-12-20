@@ -80,30 +80,50 @@ const ChannelsChart = (data, eventData) => {
   // const plotWidth = (width-padding)/grouped.size - padding;
   // const plotHeight = height-padding*2;
 
+    //Scales:
+    const xScale = d3.scaleLinear()
+    .domain(d3.extent(data, d => d.Time))
+    .range([0, plotWidth]);
+  
+    const y_extent = d3.extent(data, d => d["Cz"])[1]
+    //TODO: change this extent
+    const yScale = d3.scaleLinear()
+      .domain(
+        [
+          -y_extent,
+          y_extent
+        ]
+      )
+      .range([plotHeight, 0]);
+  
   const svg = d3.select("#chart1")
     .append("svg")
     .attr("width", margin.left + width + margin.right)
     .attr("height", margin.top + height + margin.bottom + (padding * grouped.size));
 
-  const g = svg.append("g")
+  // Plot events
+  eventData.forEach(r => {
+    // latency is the sample number, not the time
+    const samplingFrequency = 128
+    const eventStart = parseInt(r.latency / samplingFrequency) * 1000
+    const eventLength = 200
+    const rectWidth = xScale(eventLength) - margin.left
+    const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
+
+    svg
+      .append("rect")
+      .attr("width", rectWidth)
+      .attr("height", height)
+      .attr("transform", `translate(${xScale(eventStart)}, 0)`)
+      .attr("fill", fillColor)
+  })
+    
+  
+    const g = svg.append("g")
     .attr("transform", "translate(" + [margin.left, margin.top] + ")");
 
-      //Scales:
-  const xScale = d3.scaleLinear()
-  .domain(d3.extent(data, d => d.Time))
-  .range([0, plotWidth]);
 
-  const y_extent = d3.extent(data, d => d["Cz"])[1]
-  //TODO: change this extent
-  const yScale = d3.scaleLinear()
-    .domain(
-      [
-        -y_extent,
-        y_extent
-      ]
-    )
-    .range([plotHeight, 0]);
-
+    
   // Place plots:
   const plots = g.selectAll(null)
     .data(grouped)
@@ -184,23 +204,6 @@ const ChannelsChart = (data, eventData) => {
 
   addBrush(xScale, svg, width, height, margin)
 
-  // Plot events
-  eventData.forEach(r => {
-    // latency is the sample number, not the time
-    const samplingFrequency = 128
-    const eventStart = parseInt(r.latency / samplingFrequency) * 1000
-    const eventLength = 200
-    const rectWidth = xScale(eventLength) - margin.left
-    const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
-
-    svg
-      .append("rect")
-      .attr("width", rectWidth)
-      .attr("height", height)
-      .attr("transform", `translate(${xScale(eventStart)}, 0)`)
-      .attr("fill", fillColor)
-  })
-  
   return svg.node()
 
 }
