@@ -8,6 +8,8 @@ d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
   // Dimensions:
   const height = 800;
   const width = 700;
+  // TODO: we'll need the left one at least, for
+  // the y axis
   // const margin = {
   //   top: 10,
   //   left: 50,
@@ -37,6 +39,24 @@ d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
 
   const g = svg.append("g")
     .attr("transform", "translate(" + [margin.left, margin.top] + ")");
+
+  d3.csv('data/eeg-events-3.csv').then(eegEvents3 => 
+    eegEvents3.forEach(r => {
+      // latency is the sample number, not the time
+      const samplingFrequency = 128
+      const eventStart = parseInt(r.latency / samplingFrequency) * 1000
+      const eventLength = 200
+      const rectWidth = xScale(eventLength) - margin.left
+      const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
+        
+      svg
+        .append("rect")
+        .attr("width", rectWidth)
+        .attr("height", height)
+        .attr("transform", `translate(${xScale(eventStart)}, 0)`)
+        .attr("fill", fillColor)
+    })
+  )
 
   //Scales:
   const xScale = d3.scaleLinear()
