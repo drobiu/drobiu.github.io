@@ -1,4 +1,4 @@
-d3.json("/data/eeg.json").then(data => {
+const PSDChart = data => {
     width = 700;
     height = 480;
     ranges = [0, 1000];
@@ -48,7 +48,9 @@ d3.json("/data/eeg.json").then(data => {
             checkbox.checked = true;
         }
     }
-});
+}
+
+// d3.json("/data/eeg.json").then(PSDChart);
 
 function update(range_vals) {
     svg.selectAll("*").remove();

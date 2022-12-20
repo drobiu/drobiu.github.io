@@ -45,13 +45,14 @@ function addBrush(xScale, svg, width, height, margin) {
 
 }
 
+const getGrouped = data => new Map(data.columns
+  .filter(c => c !== 'Time')
+  .map(c => [c,
+    data.map(v => (
+      { 'time': v['Time'], 'value': v[c] }))]))
 
 const ChannelsChart = (data, eventData) => {
-  const grouped = new Map(data.columns
-    .filter(c => c !== 'Time')
-    .map(c => [c,
-      data.map(v => (
-        { 'time': v['Time'], 'value': v[c] }))]))
+  const grouped = getGrouped(data)
 
   // Dimensions:
   const height = 800;
@@ -80,22 +81,22 @@ const ChannelsChart = (data, eventData) => {
   // const plotWidth = (width-padding)/grouped.size - padding;
   // const plotHeight = height-padding*2;
 
-    //Scales:
-    const xScale = d3.scaleLinear()
+  //Scales:
+  const xScale = d3.scaleLinear()
     .domain(d3.extent(data, d => d.Time))
     .range([0, plotWidth]);
-  
-    const y_extent = d3.extent(data, d => d["Cz"])[1]
-    //TODO: change this extent
-    const yScale = d3.scaleLinear()
-      .domain(
-        [
-          -y_extent,
-          y_extent
-        ]
-      )
-      .range([plotHeight, 0]);
-  
+
+  const y_extent = d3.extent(data, d => d["Cz"])[1]
+  //TODO: change this extent
+  const yScale = d3.scaleLinear()
+    .domain(
+      [
+        -y_extent,
+        y_extent
+      ]
+    )
+    .range([plotHeight, 0]);
+
   const svg = d3.select("#chart1")
     .append("svg")
     .attr("width", margin.left + width + margin.right)
@@ -117,13 +118,10 @@ const ChannelsChart = (data, eventData) => {
       .attr("transform", `translate(${xScale(eventStart)}, 0)`)
       .attr("fill", fillColor)
   })
-    
-  
-    const g = svg.append("g")
+
+  const g = svg.append("g")
     .attr("transform", "translate(" + [margin.left, margin.top] + ")");
 
-
-    
   // Place plots:
   const plots = g.selectAll(null)
     .data(grouped)
@@ -132,43 +130,6 @@ const ChannelsChart = (data, eventData) => {
     .attr("transform", function (d, i) {
       return "translate(" + [padding, i * (doublePadding + plotHeight) + padding] + ")";
     })
-
-  // const tooltip = d3.select('svg')
-  // .append('g')
-  // .style('visibility', 'hidden');
-
-  // tooltip.append('rect')  
-  // .attr('width', 100)
-  // .attr('height', 50)
-  // .style('fill', '#fff')
-  // .style('stroke', '#000')
-
-  // tooltip.append('text')
-  // .attr('x', 20)
-  // .attr('y', 20)
-
-  // //Optional plot background:
-  // plots.append("rect")
-  // .attr("width",plotWidth)
-  // .attr("height",plotHeight)
-  // .attr("fill","#ddd")
-  // .on("mouseenter", (e, d) => {
-  // tooltip.style('visibility', 'visible');
-  // tooltip.select('text').text(d[0]);  
-  // })
-  // .on("mouseleave", () => tooltip.style('visibility', 'hidden'))
-  // .on("mousemove", e => tooltip
-  // .attr('transform', `translate(${e.clientX},${e.clientY})`))
-
-
-  // // Plot actual data
-  // plots.selectAll(null)
-  // .data(d=>d[1])
-  // .enter()
-  // .append("circle")
-  // .attr("r", 4)
-  // .attr("cy", d=>yScale(d.value))
-  // .attr("cx", d=>xScale(d.time))
 
   // Plot line if needed:
   plots.append("path")
@@ -202,14 +163,16 @@ const ChannelsChart = (data, eventData) => {
     .attr("transform", "translate(" + [-padding, 0] + ")")
     .call(d3.axisLeft(yScale))
 
+  // BRUSHY BRUSHY
   addBrush(xScale, svg, width, height, margin)
 
   return svg.node()
-
 }
 
-d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(eegData => 
-  d3.csv('data/eeg-events-3.csv').then(eventData =>
+d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(eegData =>
+  d3.csv('data/eeg-events-3.csv').then(eventData => {
     ChannelsChart(eegData, eventData)
-  )
+    d3.json("/data/eeg.json").then(PSDChart);
+  }
+)
 )
