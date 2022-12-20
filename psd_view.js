@@ -1,8 +1,20 @@
-const PSDChart = data => {
-    width = 700;
-    height = 480;
-    ranges = [0, 1000];
+import state from "./state.js";
 
+var  ranges = [0, 1000];
+const width = 700;
+const height = 480;
+
+const getDataDict = data => {
+    let data_dict = {};
+
+    for (let i = 0; i < data.length; i++) {
+        data_dict[data[i].name] = data[i].data;
+    }
+
+    return data_dict
+}
+
+export default function PSDChart(data) {
     margin = { top: 20, right: 30, bottom: 30, left: 60 }
 
     size = 100;
@@ -15,17 +27,15 @@ const PSDChart = data => {
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
 
-    data_dict = {};
-
-    for (i = 0; i < data.length; i++) {
-        data_dict[data[i].name] = data[i].data;
-    }
+    data_dict = getDataDict(data)
 
     data_length = data_dict['time'].length;
 
     f = 1/data_dict['time'][1];
 
     value_names = Object.keys(data_dict);
+
+    state.channels = value_names
 
     select = document.getElementById('selector');
 
@@ -48,31 +58,32 @@ const PSDChart = data => {
             checkbox.checked = true;
         }
     }
+
+    return svg    
 }
 
 // d3.json("/data/eeg.json").then(PSDChart);
 
-function update(range_vals) {
+export function update(range_vals) {
+    ranges = range_vals === undefined ? ranges : range_vals;
+
+    const svg = d3.select("#chart2")
+
     svg.selectAll("*").remove();
-    checked = [];
+    let checked = [];
+    const value_names = state.channels
 
     for (var i = 1; i < value_names.length; i++) {
-        check = document.getElementById(value_names[i]);
+        let check = document.getElementById(value_names[i]);
         if (check.checked) {
             checked.push(value_names[i]);
         }
     }
 
-    if (range_vals === undefined) {
-        range_vals = ranges;
-    }
-
-    ranges = range_vals;
-
-    xy = [];
+    let xy = [];
     for (var i = 0; i < checked.length; i++) {
         ranged_data = []
-        for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), data_length); j++) {
+        for (var j = parseInt(ranges[0]); j < Math.min(parseInt(ranges[1]), data_length); j++) {
             ranged_data.push(parseFloat(data_dict[checked[i]][j]));
         }
         psd = bci.welch(ranged_data, f);

@@ -1,4 +1,5 @@
-// const d3 = d3
+import state from "./state.js";
+import psd_view from "./psd_view.js";
 
 function addBrush(xScale, svg, width, height, margin) {
   // BRUSHY BRUSHY
@@ -9,7 +10,8 @@ function addBrush(xScale, svg, width, height, margin) {
       console.log(`no selection`);
     } else {
       console.log(selection.map(xScale.invert))
-      // update(selection.map(xScale.invert));
+      if (selection[0] !== selection[1])
+        psd_view.update(selection.map(xScale.invert));
     }
   }
 
@@ -172,7 +174,7 @@ const ChannelsChart = (data, eventData) => {
 d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(eegData =>
   d3.csv('data/eeg-events-3.csv').then(eventData => {
     ChannelsChart(eegData, eventData)
-    d3.json("/data/eeg.json").then(PSDChart);
-  }
+  d3.json("/data/eeg.json").then(PSDChart);
+}
 )
 )
