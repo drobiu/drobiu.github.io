@@ -1,4 +1,52 @@
-d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
+// const d3 = d3
+
+function addBrush(xScale, svg, width, height, margin) {
+  // BRUSHY BRUSHY
+
+  function brushed(event) {
+    const selection = event.selection;
+    if (selection === null) {
+      console.log(`no selection`);
+    } else {
+      console.log(selection.map(xScale.invert))
+      // update(selection.map(xScale.invert));
+    }
+  }
+
+  const brush_size = 500
+
+  function beforebrushstarted(event) {
+    //TODO: this not global
+    let x = xScale;
+    const dx = x(brush_size) - x(0); // Use a fixed width when recentering.
+
+    // const dx = brush_size
+    // const dx = brush_size
+    const [[cx]] = d3.pointers(event);
+    const [x0, x1] = [cx - dx / 2, cx + dx / 2];
+    const [X0, X1] = x.range();
+
+    d3.select(this.parentNode)
+      .call(brush.move, x1 > X1 ? [X1 - dx, X1]
+        : x0 < X0 ? [X0, X0 + dx]
+          : [x0, x1]);
+  }
+
+  const brush = d3.brushX()
+    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+    .on("start brush end", brushed);
+
+  svg.append("g")
+    .call(brush)
+    .call(brush.move, [1000, 1000 + brush_size].map(xScale))
+    .call(g => g.select(".overlay")
+      .datum({ type: "selection" })
+      .on("mousedown touchstart", beforebrushstarted));
+
+}
+
+
+const ChannelsChart = (data, eventData) => {
   const grouped = new Map(data.columns
     .filter(c => c !== 'Time')
     .map(c => [c,
@@ -21,7 +69,7 @@ d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
     left: 0,
     right: 0,
     bottom: 0
-  }  
+  }
   // const padding = 30;
   const padding = 0;
   const doublePadding = padding * 2;
@@ -40,35 +88,14 @@ d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
   const g = svg.append("g")
     .attr("transform", "translate(" + [margin.left, margin.top] + ")");
 
-  d3.csv('data/eeg-events-3.csv').then(eegEvents3 => 
-    eegEvents3.forEach(r => {
-      // latency is the sample number, not the time
-      const samplingFrequency = 128
-      const eventStart = parseInt(r.latency / samplingFrequency) * 1000
-      const eventLength = 200
-      const rectWidth = xScale(eventLength) - margin.left
-      const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
-        
-      svg
-        .append("rect")
-        .attr("width", rectWidth)
-        .attr("height", height)
-        .attr("transform", `translate(${xScale(eventStart)}, 0)`)
-        .attr("fill", fillColor)
-    })
-  )
-
-  //Scales:
+      //Scales:
   const xScale = d3.scaleLinear()
-    .domain(d3.extent(data, d => d.Time))
-    .range([0, plotWidth]);
+  .domain(d3.extent(data, d => d.Time))
+  .range([0, plotWidth]);
 
   const y_extent = d3.extent(data, d => d["Cz"])[1]
   //TODO: change this extent
   const yScale = d3.scaleLinear()
-    // .domain(
-    //     d3.extent(data, d => d["Cz"])
-    //   )
     .domain(
       [
         -y_extent,
@@ -148,58 +175,38 @@ d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(data => {
   plots.append("g")
     .attr("transform", "translate(" + [0, plotHeight] + ")")
     .call(d3.axisBottom(xScale)
-    // .ticks(4)
+      // .ticks(4)
     );
 
   plots.append("g")
     .attr("transform", "translate(" + [-padding, 0] + ")")
     .call(d3.axisLeft(yScale))
 
-  // BRUSHY BRUSHY
+  addBrush(xScale, svg, width, height, margin)
 
-  function brushed(event) {
-    const selection = event.selection;
-    if (selection === null) {
-      console.log(`no selection`);
+  // Plot events
+  eventData.forEach(r => {
+    // latency is the sample number, not the time
+    const samplingFrequency = 128
+    const eventStart = parseInt(r.latency / samplingFrequency) * 1000
+    const eventLength = 200
+    const rectWidth = xScale(eventLength) - margin.left
+    const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
 
-      // circle.attr("stroke", null);
-    } else {
-      console.log(selection.map(xScale.invert))
-      update(selection.map(xScale.invert));
+    svg
+      .append("rect")
+      .attr("width", rectWidth)
+      .attr("height", height)
+      .attr("transform", `translate(${xScale(eventStart)}, 0)`)
+      .attr("fill", fillColor)
+  })
+  
+  return svg.node()
 
-      // const [x0, x1] = selection.map(x.invert);
-      // circle.attr("stroke", d => x0 <= d && d <= x1 ? "red" : null);
-    }
-  }
+}
 
-  const brush_size = 500
-
-  function beforebrushstarted(event) {
-    //TODO: this not global
-    let x = xScale;
-    const dx = x(brush_size) - x(0); // Use a fixed width when recentering.
-
-    // const dx = brush_size
-    // const dx = brush_size
-    const [[cx]] = d3.pointers(event);
-    const [x0, x1] = [cx - dx / 2, cx + dx / 2];
-    const [X0, X1] = x.range();
-
-    d3.select(this.parentNode)
-      .call(brush.move, x1 > X1 ? [X1 - dx, X1]
-        : x0 < X0 ? [X0, X0 + dx]
-          : [x0, x1]);
-  }
-
-  const brush = d3.brushX()
-    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-    .on("start brush end", brushed);
-
-  svg.append("g")
-    .call(brush)
-    .call(brush.move, [1000, 1000 + brush_size].map(xScale))
-    .call(g => g.select(".overlay")
-      .datum({ type: "selection" })
-      .on("mousedown touchstart", beforebrushstarted));
-
-})
+d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(eegData => 
+  d3.csv('data/eeg-events-3.csv').then(eventData =>
+    ChannelsChart(eegData, eventData)
+  )
+)
