@@ -106,6 +106,8 @@ function plot(xs, ys, svg) {
 
     extent = d3.extent(ys);
 
+    // TODO: Would be better if we fix the axis domain/range
+    // to the max(eeg) value
     // Add Y axis
     var y = d3.scaleLog()
         .domain(extent)
