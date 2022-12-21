@@ -1,19 +1,13 @@
 
 import loc from './data/locations.json' assert { type: 'json' };
 
-console.log(loc);
-
-
-var margin = {top: 10, right: 30, bottom: 30, left: 60}
-
 var size = 170;
 var dotsize = 10;
 var scale_up = 2;
 
 var xy_transform = size/2;
 
-var svg = d3.select("body")
-    .append("svg")
+var svg = d3.select("#scalp_map")
     .attr("width", size * scale_up)
     .attr("height", size * scale_up);
 
@@ -77,7 +71,7 @@ d3.csv("/data/eeg-lab-sample-export.csv", function (data) {
         value_name: value_name
     }
 
-    
+
     single_values.push(data_obj.values[0]);
     single_names.push(data_obj.value_name);
 
