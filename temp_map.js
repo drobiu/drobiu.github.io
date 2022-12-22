@@ -126,28 +126,49 @@ function update_z(points_xy, z_values) {
 //function to normalize values between [-1,1] and assign RGB values
 function normRGB(value_arr, coord_arr){
   //red, yellow, green, light_blue, blue
-  var colors = ["#fbff00","#fbff00","#00ff1a","#00f7ff","#0400ff"]
+  var colors = ["#ff0000","#fbff00","#00ff1a","#00f7ff","#0400ff"]
 
   //Normalize the interpolated amplitute values to be matched to one of the colors
-  var domain = [-1];
-  var increment = 2/(colors.length-1);
+  // var domain = [-1];
+  // var increment = 2/(colors.length-1);
+  // for (var i=0; i<colors.length-2; i++){
+  //     var previous = domain[domain.length-1];
+  //     domain.push(previous+increment);
+  // }
+  // domain.push(1);
+
+  // var getColor = d3.scaleLinear()
+  //     .domain(domain)
+  //     .range(colors);
+
+  // var max = Math.max.apply(null, value_arr);
+  // var min = Math.min.apply(null, value_arr);
+  // for (i = 0; i < value_arr.length; i++){
+  //     var norm = 2*((value_arr[i]-min)/(max - min))-1;
+  //     value_arr[i] = norm;
+  //     let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
+  //     d3.selectAll(id).attr("fill", getColor(norm));
+  // }
+
+  var max = Math.max.apply(null, value_arr);
+  var min = Math.min.apply(null, value_arr);
+
+  var domain = [min];
+  var increment = (Math.abs(min) + Math.abs(max))/(colors.length-1);
   for (var i=0; i<colors.length-2; i++){
       var previous = domain[domain.length-1];
       domain.push(previous+increment);
   }
-  domain.push(1);
+  domain.push(max);
+  console.log(domain);
 
   var getColor = d3.scaleLinear()
       .domain(domain)
       .range(colors);
 
-  var max = Math.max.apply(null, value_arr);
-  var min = Math.min.apply(null, value_arr);
   for (i = 0; i < value_arr.length; i++){
-      var norm = 2*((value_arr[i]-min)/(max - min))-1;
-      value_arr[i] = norm;
-      let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
-      d3.selectAll(id).attr("fill", getColor(norm));
+    let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
+    d3.selectAll(id).attr("fill", getColor(value_arr[i]));
   }
 }
 
