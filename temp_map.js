@@ -9,28 +9,53 @@ var data = d3.json("/data/eeg.json").then(data => {
   var data_length = data_dict['time'].length;
   var value_names = Object.keys(data_dict);
 
-  //console.log(data_dict);
-
   var grid = d3.select("#grid")
     .append("svg");
   
-  grid.attr("height", 340)
-    .attr("width", 340);
+  grid.attr("height", 344)
+    .attr("width", 344);
 
+  let mask_r = Math.pow(43,2);
   //Build an 85x85 grid with rectangles
-  //Ids of the rectangles in the form #cellX_Y 
-  //(with x and y being the coordinates of the square)
+  //Ids of the rectangles in the form #cellx_y 
+  //(with x and y being the coordinates of the square 0,0 top-left)
   for (let i = 0; i < 85; i++){
     for (let j = 0; j < 85; j++){
-      let name = "cell" + i + "_" + j;
-      grid.append("rect")
-      .attr("id", name)
-      .attr("width", 4)
-      .attr("height", 4)
-      .attr("x", i * 4)
-      .attr("y", j * 4);
+      //Mask area outside scalp outline (save on computations too)
+      let dist = Math.pow((42-i), 2) + Math.pow((42-j) ,2)
+      if (dist <= mask_r){
+        let name = "cell" + i + "_" + j;
+        grid.append("rect")
+        .attr("id", name)
+        .attr("width", 4)
+        .attr("height", 4)
+        .attr("x", i * 4)
+        .attr("y", j * 4);
+      }
     }
   }
+
+  var size = 170;
+  var scale_up = 2;
+  
+  //Scalp outline
+  grid.append("circle")
+    .attr("id", "scalp_map")
+    .attr("cx", size/2 * scale_up)
+    .attr("cy", size/2 * scale_up)
+    .attr("r", size/2 * scale_up)
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 2);
+  
+  //Scalp mask
+  grid.append("circle")
+  .attr("cx", size/2 * scale_up)
+  .attr("cy", size/2 * scale_up)
+  .attr("r", 173)
+  .attr("fill", "none")
+  .attr("stroke", "white")
+  .attr("stroke-width", 4);
 
   var points_xy = []; //Store the [x,y] coords
   var z = []; //store the amplitute values
@@ -61,33 +86,38 @@ var data = d3.json("/data/eeg.json").then(data => {
         interpolated_xy.push([i,j]);
       }
     }
-    //red, yellow, green, light_blue, blue
-    var colors = ["#fbff00","#fbff00","#00ff1a","#00f7ff","#0400ff"]
-
-    //Normalize the interpolated amplitute values to be matched to one of the colors
-    var domain = [-1];
-    var increment = 2/(colors.length-1);
-    for (var i=0; i<colors.length-2; i++){
-        var previous = domain[domain.length-1];
-        domain.push(previous+increment);
-    }
-    domain.push(1);
-
-    var getColor = d3.scaleLinear()
-        .domain(domain)
-        .range(colors);
-
-    var max = Math.max.apply(null, interpolated_z);
-    var min = Math.min.apply(null, interpolated_z);
-    for (i = 0; i < interpolated_z.length; i++){
-        var norm = 2*((interpolated_z[i]-min)/(max - min))-1;
-        interpolated_z[i] = norm;
-        let id = "#cell" + interpolated_xy[i][0] + "_" + interpolated_xy[i][1];
-        d3.selectAll(id).attr("fill", getColor(norm));
-    }
-
+    normRGB(interpolated_z, interpolated_xy);
   });
 
 });
+
+
+//function to normalize values between [-1,1] and assign RGB values
+function normRGB(value_arr, coord_arr){
+  //red, yellow, green, light_blue, blue
+  var colors = ["#fbff00","#fbff00","#00ff1a","#00f7ff","#0400ff"]
+
+  //Normalize the interpolated amplitute values to be matched to one of the colors
+  var domain = [-1];
+  var increment = 2/(colors.length-1);
+  for (var i=0; i<colors.length-2; i++){
+      var previous = domain[domain.length-1];
+      domain.push(previous+increment);
+  }
+  domain.push(1);
+
+  var getColor = d3.scaleLinear()
+      .domain(domain)
+      .range(colors);
+
+  var max = Math.max.apply(null, value_arr);
+  var min = Math.min.apply(null, value_arr);
+  for (i = 0; i < value_arr.length; i++){
+      var norm = 2*((value_arr[i]-min)/(max - min))-1;
+      value_arr[i] = norm;
+      let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
+      d3.selectAll(id).attr("fill", getColor(norm));
+  }
+}
 
 
