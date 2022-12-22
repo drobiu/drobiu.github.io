@@ -8,7 +8,9 @@ var data = d3.json("/data/eeg.json").then(data => {
   }
   var data_length = data_dict['time'].length;
   var value_names = Object.keys(data_dict);
-
+  var slider = document.getElementById("time_slider");
+  var time_label = document.getElementById("time_label");
+  
   var grid = d3.select("#grid")
     .append("svg");
   
@@ -68,29 +70,58 @@ var data = d3.json("/data/eeg.json").then(data => {
       loc[i].y = Math.ceil((loc[i].y + 85)*0.5-1);
 
       points_xy.push([loc[i].x, loc[i].y]);
-      z.push(data_dict[loc[i].label][0]); //[0] should be hooked up to the desired timestamp
+      z.push(data_dict[loc[i].label][0]); //display values at time 0
+      update_z(points_xy, z);
 
       let id = "#cell" + loc[i].x + "_" + loc[i].y;
       d3.selectAll(id).style("fill", "black"); //Arbitrary color to distinguish the electrodes
     }
-
-    var rbf = RBF(points_xy, z); //Radial basis intepolation of the amplitute values
     
-    var interpolated_z = [];
-    var interpolated_xy = [];
-
-    //Store the interpolated amplitute values for every location in the 85x85 grid
-    for (let i = 0; i < 85; i++){
-      for (let j = 0; j < 85; j++){
-        interpolated_z.push(rbf([i,j]));
-        interpolated_xy.push([i,j]);
+    //Update intepolation on slider click
+    slider.onchange = function(event) {
+      z = [];
+      for (let i = 0; i < loc.length; i++) {
+        z.push(data_dict[loc[i].label][slider.value]);
       }
+      update_z(points_xy, z);
+      time_label.innerHTML = data_dict['time'][slider.value] + "ms";
     }
-    normRGB(interpolated_z, interpolated_xy);
+
+    //Update interpolation on slider scroll
+    slider.onwheel = function(event) {
+      z = [];
+      if (event.deltaY < 0){
+        slider.value = parseInt(slider.value) + 1;
+      } else {
+        slider.value = parseInt(slider.value) - 1;
+      }
+      for (let i = 0; i < loc.length; i++) {
+        z.push(data_dict[loc[i].label][slider.value]);
+      }
+      update_z(points_xy, z);
+      time_label.innerHTML = data_dict['time'][slider.value] + "ms";
+    }
+    
   });
 
 });
 
+
+function update_z(points_xy, z_values) {
+  var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
+  
+  var interpolated_z = [];
+  var interpolated_xy = [];
+
+  //Store the interpolated amplitute values for every location in the 85x85 grid
+  for (let i = 0; i < 85; i++){
+    for (let j = 0; j < 85; j++){
+      interpolated_z.push(rbf([i,j]));
+      interpolated_xy.push([i,j]);
+    }
+  }
+  normRGB(interpolated_z, interpolated_xy);
+}
 
 //function to normalize values between [-1,1] and assign RGB values
 function normRGB(value_arr, coord_arr){
