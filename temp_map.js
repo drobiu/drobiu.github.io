@@ -1,6 +1,45 @@
 var data_dict = {};
 import RBF from './rbf.js';
 
+var slider = document.getElementById("time_slider");
+var time_label = document.getElementById("time_label");
+
+var legend_colors = ["#ff0000","#fbff00","#00ff1a","#00f7ff","#0400ff"];
+
+//Create legend rectangle as a linear gradient
+var legend = d3.select('#legend')
+  .append('svg')
+  .attr('width', 200)
+  .attr('height', 360);
+
+var grad = legend.append('defs')
+  .append('linearGradient')
+  .attr('id', 'grad')
+  .attr('x1', '0%')
+  .attr('x2', '0%')
+  .attr('y1', '0%')
+  .attr('y2', '100%');
+
+grad.selectAll('stop')
+  .data(legend_colors)
+  .enter()
+  .append('stop')
+  .style('stop-color', function(d){ return d; })
+  .attr('offset', function(d,i){
+    return 100 * (i / (legend_colors.length - 1)) + '%';
+  })
+
+legend.append('rect')
+  .attr('x', 10)
+  .attr('y', 10)
+  .attr('width', 40)
+  .attr('height', 340)
+  .style('fill', 'url(#grad)');
+
+legend.append("g")
+  .attr("transform", "translate(50, 10)")
+  .attr("height", 340);
+
 var data = d3.json("/data/eeg.json").then(data => {
 
   for (let i = 0; i < data.length; i++) {
@@ -8,9 +47,7 @@ var data = d3.json("/data/eeg.json").then(data => {
   }
   var data_length = data_dict['time'].length;
   var value_names = Object.keys(data_dict);
-  var slider = document.getElementById("time_slider");
-  var time_label = document.getElementById("time_label");
-  
+
   var grid = d3.select("#grid")
     .append("svg");
   
@@ -71,11 +108,11 @@ var data = d3.json("/data/eeg.json").then(data => {
 
       points_xy.push([loc[i].x, loc[i].y]);
       z.push(data_dict[loc[i].label][0]); //display values at time 0
-      update_z(points_xy, z);
 
       let id = "#cell" + loc[i].x + "_" + loc[i].y;
       d3.selectAll(id).style("fill", "black"); //Arbitrary color to distinguish the electrodes
     }
+    update_z(points_xy, z);
     
     //Update intepolation on slider click
     slider.onchange = function(event) {
@@ -108,6 +145,7 @@ var data = d3.json("/data/eeg.json").then(data => {
 
 
 function update_z(points_xy, z_values) {
+  console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
   
   var interpolated_z = [];
@@ -120,39 +158,18 @@ function update_z(points_xy, z_values) {
       interpolated_xy.push([i,j]);
     }
   }
-  normRGB(interpolated_z, interpolated_xy);
+  interpolateRGB(interpolated_z, interpolated_xy);
 }
 
-//function to normalize values between [-1,1] and assign RGB values
-function normRGB(value_arr, coord_arr){
+//function to interpolateRGB values between [min,max] for selected amplitude values
+function interpolateRGB(value_arr, coord_arr){
   //red, yellow, green, light_blue, blue
   var colors = ["#ff0000","#fbff00","#00ff1a","#00f7ff","#0400ff"]
-
-  //Normalize the interpolated amplitute values to be matched to one of the colors
-  // var domain = [-1];
-  // var increment = 2/(colors.length-1);
-  // for (var i=0; i<colors.length-2; i++){
-  //     var previous = domain[domain.length-1];
-  //     domain.push(previous+increment);
-  // }
-  // domain.push(1);
-
-  // var getColor = d3.scaleLinear()
-  //     .domain(domain)
-  //     .range(colors);
-
-  // var max = Math.max.apply(null, value_arr);
-  // var min = Math.min.apply(null, value_arr);
-  // for (i = 0; i < value_arr.length; i++){
-  //     var norm = 2*((value_arr[i]-min)/(max - min))-1;
-  //     value_arr[i] = norm;
-  //     let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
-  //     d3.selectAll(id).attr("fill", getColor(norm));
-  // }
 
   var max = Math.max.apply(null, value_arr);
   var min = Math.min.apply(null, value_arr);
 
+  //Build domain values based on the received value_arr
   var domain = [min];
   var increment = (Math.abs(min) + Math.abs(max))/(colors.length-1);
   for (var i=0; i<colors.length-2; i++){
@@ -160,16 +177,28 @@ function normRGB(value_arr, coord_arr){
       domain.push(previous+increment);
   }
   domain.push(max);
-  console.log(domain);
 
   var getColor = d3.scaleLinear()
       .domain(domain)
       .range(colors);
 
+  //Assign interpolatedRGB values to every sqaure in the grid
   for (i = 0; i < value_arr.length; i++){
     let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
     d3.selectAll(id).attr("fill", getColor(value_arr[i]));
   }
-}
+  
+  //Update legend values according to the input amplitude values
+  var scale = d3.scaleLinear()
+                .domain(domain)
+                .range([0, 85]);
 
+  var y_axis = d3.axisRight()
+                .scale(scale)
+                .tickValues(domain)
+                .tickFormat(d3.format(",.0f"));
+
+  legend.select("g").call(y_axis);
+  legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6");
+}
 
