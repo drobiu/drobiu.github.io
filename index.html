@@ -2,16 +2,26 @@
 <html>
 <head>
     <script src="https://d3js.org/d3.v7.min.js" charset="utf-8"></script>
-    <style>
-        svg{
-            border:1px solid rgb(255, 255, 255);
-        }
-    </style>
-    <link rel="stylesheet" href="scalp.css"></link>
+    <script src="https://cdn.jsdelivr.net/npm/numeric@1.2.6/numeric-1.2.6.js"></script>
+    <script type='module' src="rbf.js"></script>
 </head>
 <body>
-    <script type='module' src="scalp.js"></script>
-
-
+    <table>
+        <thead>
+            <tr>
+                <th id="grid"></th>
+                <th id="legend"></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="2">
+                    <input type="range" id="time_slider" min="0" value="0" max="30503" step="1"></input>
+                    <p id="time_label" >0ms</p> 
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <script type='module' src="temp_map.js"></script>
 </body>
 </html>
