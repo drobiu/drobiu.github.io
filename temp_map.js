@@ -5,6 +5,7 @@ var slider = document.getElementById("time_slider");
 var time_label = document.getElementById("time_label");
 
 var legend_colors = ["#ff0000","#fbff00","#00ff1a","#00f7ff","#0400ff"];
+var state = { svg: null }
 
 //Create legend rectangle as a linear gradient
 var legend = d3.select('#legend')
@@ -99,7 +100,8 @@ var data = d3.json("/data/eeg.json").then(data => {
   .attr("stroke-width", 4);
 
   var points_xy = []; //Store the [x,y] coords
-  var z = []; //store the amplitute values
+  state.scalp_xy = points_xy;
+  var z = []; //store the amplitude values
 
   var loc = d3.json('/data/locations.json').then(loc => {
     //Loop to add the electrode locations and amplitude values
@@ -204,12 +206,12 @@ function interpolateRGB(value_arr, coord_arr){
   legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6");
 }
 
-var state = { svg: null }
-
 function PSDChart(data) {
     state.width = 700;
     state.height = 480;
-    var ranges = [0, 1000];
+    state.psds = [];
+    state.psd_clicked = false;
+    state.psd_info = {};
 
     const margin = { top: 20, right: 30, bottom: 30, left: 60 }
     state.margin = margin;
@@ -220,9 +222,25 @@ function PSDChart(data) {
         .append("svg")
         .attr("width", state.width + margin.left + margin.right)
         .attr("height", state.height + margin.top + margin.bottom)
+        .on("pointerenter", pointerentered)
+        .on("pointerleave", pointerleft)
+        .on("pointermove", (event) => {state.psd_clicked ? null : pointermoved(event)})
+        .on("click", () => {state.psd_clicked = !state.psd_clicked})
         .append("g")
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
+    
+    state.legend = document.createElement('div');
+    document.getElementById("chart2").appendChild(state.legend);
+    
+    state.line = svg.append("line")
+        .attr("x1", 10)
+        .attr("y1", 0)
+        .attr("x2", 10)
+        .attr("y2", state.height - state.margin.top - state.margin.bottom)
+        .style("stroke-width", 2)
+        .style("stroke", "red")
+        .style("fill", "none");
 
     state.svg = svg
 
@@ -264,12 +282,12 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
-    state.svg.selectAll("*").remove();
+    state.svg.selectAll("*:not(line)").remove();
     var checked = [];
 
     for (var i = 1; i < state.value_names.length; i++) {
         var check = document.getElementById(state.value_names[i]);
-        if (check.checked) {
+        if (check.checked) {  
             checked.push(state.value_names[i]);
         }
     }
@@ -279,6 +297,7 @@ function update(range_vals) {
     }
 
     var ranges = range_vals;
+    state.psds = {};
 
     var xy = [];
     for (var i = 0; i < checked.length; i++) {
@@ -287,8 +306,10 @@ function update(range_vals) {
             ranged_data.push(parseFloat(data_dict[checked[i]][j]));
         }
         var psd = bci.welch(ranged_data, state.f);
+        state.psds[checked[i]] = psd;
         xy = plot(psd.frequencies, psd.estimates, state.svg)
     }
+    console.log(state.psds)
 
     addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
 }
@@ -313,6 +334,15 @@ function plot(xs, ys, svg) {
     var x = d3.scaleLinear()
         .domain(d3.extent(xs))
         .range([0, state.width]);
+
+    state.psd_x = x;
+
+    // Initialized here for speed; can be initialized elsewhere for more speed
+    state.psd_inv_x = d3.scaleLinear()
+      .domain([0, state.width])
+      .range(d3.extent(xs));
+
+    state.psd_xs = xs;
 
     // TODO: Would be better if we fix the axis domain/range
     // to the max(eeg) value
@@ -384,6 +414,39 @@ function addBrush(xScale, svg, width, height, margin) {
             .datum({ type: "selection" })
             .on("mousedown touchstart", beforebrushstarted));
 
+}
+
+function pointerentered() {
+  state.line.style("stroke", "red");
+}
+
+function pointerleft() {
+  if (!state.psd_clicked)
+    state.line.style("stroke", "none");
+}
+
+function pointermoved(event) {
+  const [xm, ym] = d3.pointer(event)
+  const psd_dx = state.psd_xs[1]
+  var x_in_psd_domain = Math.max(0, state.psd_inv_x(xm - state.margin.left));
+  var rounded = (Math.round(x_in_psd_domain * (1/psd_dx)) * psd_dx);
+
+  var data = {};
+
+  Object.entries(state.psds).forEach(entry => {
+    const [key, value] = entry;
+    data[key] = value.estimates[parseInt(rounded/psd_dx)];
+  })
+
+  // debug for now
+  state.legend.innerHTML = rounded + ":" + Object.entries(data);
+
+  state.psd_info = data;
+
+  state.line
+    .attr("x1", state.psd_x(rounded))
+    .attr("x2", state.psd_x(rounded));
+  console.log(xm)
 }
 
 const getGrouped = data => new Map(data.columns
