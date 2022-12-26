@@ -125,12 +125,13 @@ var data = d3.json("/data/eeg.json").then(data => {
         .attr("cx", loc[i].x * mult + 1)
         .attr("cy", loc[i].y * mult + 1)
         .attr("r", 0)
-        .attr("fill", "red")
+        .attr("fill", "green")
         .attr("stroke", "black")
         .attr("stroke-width", 2)
         .on("click", () => {
           var checkbox = document.getElementById(loc[i].label);
           checkbox.checked = !checkbox.checked;
+          d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "green" : "red");
           update();
         });
         
@@ -153,7 +154,6 @@ var data = d3.json("/data/eeg.json").then(data => {
       circles.forEach((circle) => {
         circle.attr("r", 0);
       })
-      console.log('left')
     });
     
     //Update intepolation on slider click
@@ -187,7 +187,7 @@ var data = d3.json("/data/eeg.json").then(data => {
 
 
 function update_z(points_xy, z_values) {
-  console.log(z_values);
+  // console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
   
   var interpolated_z = [];
@@ -312,10 +312,9 @@ function PSDChart(data) {
         div.appendChild(label);
         select.appendChild(div);
 
-        // DELETE LATER
-        if (i == 1) {
-            checkbox.checked = true;
-        }
+        // Enable all plots by default
+        checkbox.checked = true;
+        
     }
 }
 
@@ -347,7 +346,6 @@ function update(range_vals) {
         state.psds[checked[i]] = psd;
         xy = plot(psd.frequencies, psd.estimates, state.svg)
     }
-    console.log(state.psds)
 
     addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
 }
@@ -486,8 +484,6 @@ function pointermoved(event) {
     }
   })
 
-  console.log(state.value_names)
-
   state.z = z;
 
   // debug for now
@@ -500,7 +496,6 @@ function pointermoved(event) {
   state.line
     .attr("x1", state.psd_x(rounded))
     .attr("x2", state.psd_x(rounded));
-  console.log(xm)
 }
 
 function clicked() {
