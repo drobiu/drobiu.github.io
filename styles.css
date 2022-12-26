@@ -7,3 +7,7 @@
 #chart2 {
     display: inline-block;
 }
+
+#selector {
+    visibility: hidden;
+}

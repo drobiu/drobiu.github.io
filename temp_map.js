@@ -81,7 +81,7 @@ var data = d3.json("/data/eeg.json").then(data => {
   var scale_up = 2;
   
   //Scalp outline
-  grid.append("circle")
+  var map = grid.append("circle")
     .attr("id", "scalp_map")
     .attr("cx", size/2 * scale_up)
     .attr("cy", size/2 * scale_up)
@@ -104,6 +104,9 @@ var data = d3.json("/data/eeg.json").then(data => {
   var z = []; //store the amplitude values
 
   var loc = d3.json('/data/locations.json').then(loc => {
+    var circles = [];
+    const mult = 4;
+
     //Loop to add the electrode locations and amplitude values
     for (let i = 0; i < loc.length; i++){
       //Adjust the xy coordinates from json to have the origin on the top-left
@@ -115,8 +118,43 @@ var data = d3.json("/data/eeg.json").then(data => {
 
       let id = "#cell" + loc[i].x + "_" + loc[i].y;
       d3.selectAll(id).style("fill", "black"); //Arbitrary color to distinguish the electrodes
+
+      // Add circles
+      var circle = grid.append("circle")
+        .attr("id", "circle_" + loc[i].label)
+        .attr("cx", loc[i].x * mult + 1)
+        .attr("cy", loc[i].y * mult + 1)
+        .attr("r", 0)
+        .attr("fill", "red")
+        .attr("stroke", "black")
+        .attr("stroke-width", 2)
+        .on("click", () => {
+          var checkbox = document.getElementById(loc[i].label);
+          checkbox.checked = !checkbox.checked;
+          update();
+        });
+        
+      circles.push(circle);
     }
     update_z(points_xy, z);
+
+    grid.on("mouseover", (event) => {   
+      const [xm, ym] = d3.pointer(event);
+
+      circles.forEach((circle) => {
+        var dist = Math.pow((xm-circle.attr("cx")), 2) + Math.pow((ym-circle.attr("cy")), 2);
+
+        circle
+          .attr("r", Math.min(Math.max(20 - dist/500, 0), 10));
+      })
+    });
+
+    grid.on("pointerleave", () => {   
+      circles.forEach((circle) => {
+        circle.attr("r", 0);
+      })
+      console.log('left')
+    });
     
     //Update intepolation on slider click
     slider.onchange = function(event) {
@@ -225,7 +263,7 @@ function PSDChart(data) {
         .on("pointerenter", pointerentered)
         .on("pointerleave", pointerleft)
         .on("pointermove", (event) => {state.psd_clicked ? null : pointermoved(event)})
-        .on("click", () => {state.psd_clicked = !state.psd_clicked})
+        .on("click", clicked)
         .append("g")
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
@@ -293,10 +331,10 @@ function update(range_vals) {
     }
 
     if (range_vals === undefined) {
-        range_vals = ranges;
+        range_vals = state.ranges;
     }
 
-    var ranges = range_vals;
+    state.ranges = range_vals;
     state.psds = {};
 
     var xy = [];
@@ -438,15 +476,37 @@ function pointermoved(event) {
     data[key] = value.estimates[parseInt(rounded/psd_dx)];
   })
 
+  var z = [];
+
+  state.value_names.slice(1).forEach((name) => {
+    if (Object.keys(data).includes(name)) {
+      z.push(state.psds[name].estimates[parseInt(rounded/psd_dx)]);
+    } else {
+      z.push(0);
+    }
+  })
+
+  console.log(state.value_names)
+
+  state.z = z;
+
   // debug for now
-  state.legend.innerHTML = rounded + ":" + Object.entries(data);
+  // state.legend.innerHTML = rounded + ":" + Object.entries(data);
 
   state.psd_info = data;
+
+  // update_z(state.scalp_xy, state.z);
 
   state.line
     .attr("x1", state.psd_x(rounded))
     .attr("x2", state.psd_x(rounded));
   console.log(xm)
+}
+
+function clicked() {
+  state.psd_clicked = !state.psd_clicked;
+  if (state.psd_clicked)
+    update_z(state.scalp_xy, state.z);
 }
 
 const getGrouped = data => new Map(data.columns
