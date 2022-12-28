@@ -41,6 +41,22 @@ legend.append("g")
   .attr("transform", "translate(50, 10)")
   .attr("height", 340);
 
+var tooltip = d3.select("body")
+  .append("div")
+  .attr("id", "tooltip")
+  .style("position", "absolute")
+  .style("visibility", "hidden");
+
+function showTooltip(label, event){
+  d3.select("#tooltip")
+  .html(label)
+  .style("top", (event.pageY-80)+"px").style("left",(event.pageX+20)+"px")
+  .style("background-color", "rgba(114, 114, 114, 0.75)")
+  .style("border-radius", "8px")
+  .style("padding", "10px 10px 10px 10px")
+  .style("color", "white");
+}
+
 var data = d3.json("/data/eeg.json").then(data => {
 
   PSDChart(data);
@@ -101,6 +117,7 @@ var data = d3.json("/data/eeg.json").then(data => {
 
   
   var electrodes = [];
+  state.electrodes = electrodes;
 
   var loc = d3.json('/data/locations.json').then(loc => {
     var circles = [];
@@ -118,6 +135,7 @@ var data = d3.json("/data/eeg.json").then(data => {
         "x": loc[i].x,
         "y": loc[i].y,
         "z": data_dict[loc[i].label][0],
+        "checked": true,
       })
 
       let id = "#cell" + loc[i].x + "_" + loc[i].y;
@@ -141,7 +159,6 @@ var data = d3.json("/data/eeg.json").then(data => {
         
       circles.push(circle);
     }
-    state.electrodes = electrodes;
     update_z(electrodes);
 
     grid.on("mouseover", (event) => {   
@@ -149,9 +166,18 @@ var data = d3.json("/data/eeg.json").then(data => {
 
       circles.forEach((circle) => {
         var dist = Math.pow((xm-circle.attr("cx")), 2) + Math.pow((ym-circle.attr("cy")), 2);
-
         circle
-          .attr("r", Math.min(Math.max(20 - dist/300, 0), 10));
+          .attr("r", Math.min(Math.max(20 - dist/500, 0), 10));
+        circle.on("mouseover", function(){
+          d3.select("#tooltip").style("visibility", "visible");
+          var id = this.id.slice(7);
+          var msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toPrecision(5);
+          showTooltip(msg, event);
+        });
+        circle.on("mouseout", function(){
+          d3.select("#tooltip").style("visibility", "hidden");
+        });
+
       })
     });
 
@@ -196,8 +222,10 @@ function update_z(electrodes) {
   var z_values = [];
 
   for (let i = 0; i < electrodes.length; i++){
-    points_xy.push([electrodes[i].x, electrodes[i].y]);
-    z_values.push(electrodes[i].z);
+    if (electrodes[i].checked){
+      points_xy.push([electrodes[i].x, electrodes[i].y]);
+      z_values.push(electrodes[i].z);
+    }
   }
   // console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
@@ -341,8 +369,10 @@ function update(range_vals) {
         if (check.checked) {  
           checked.push(state.value_names[i]); 
           d3.select(id).style("fill", "#ed00e5");
+          state.electrodes.find(x => x.name === state.value_names[i]).checked = true;
         } else {
           d3.select(id).style("fill", "black");
+          state.electrodes.find(x => x.name === state.value_names[i]).checked = false;
         }
     }
 
@@ -495,9 +525,12 @@ function pointermoved(event) {
 
   state.value_names.slice(1).forEach((name) => {
     if (Object.keys(data).includes(name)) {
-      z.push(state.psds[name].estimates[parseInt(rounded/psd_dx)]);
+      var current_z = state.psds[name].estimates[parseInt(rounded/psd_dx)] 
+      z.push(current_z);
+      state.electrodes.find(x => x.name === name).z = current_z; 
     } else {
       z.push(0);
+      state.electrodes.find(x => x.name === name).z = 0;
     }
   })
 
@@ -567,8 +600,8 @@ const ChannelsChart = (data, eventData) => {
     const yScale = d3.scaleLinear()
         .domain(
             [
-                -y_extent,
-                y_extent
+              -y_extent,
+              y_extent
             ]
         )
         .range([plotHeight, 0]);
