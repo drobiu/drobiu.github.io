@@ -619,7 +619,7 @@ const ChannelsChart = (data, eventData) => {
 }
 
 d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
-  d3.csv('data/eeg-events-3.csv').then(eventData => {
+  d3.csv('data/events-all.csv').then(eventData => {
       ChannelsChart(eegData, eventData)
       // d3.json("/data/eeg.json").then(data => {
       //   PSDChart(data)
