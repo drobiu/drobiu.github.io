@@ -110,9 +110,7 @@ var data = d3.json("/data/eeg.json").then(data => {
     //Loop to add the electrode locations and amplitude values
     for (let i = 0; i < loc.length; i++){
       //Adjust the xy coordinates from json to have the origin on the top-left
-      loc[i].x = Math.ceil((loc[i].x + 85)*0.5-1); 
-      loc[i].y = Math.ceil((loc[i].y + 85)*0.5-1);
-
+      
       points_xy.push([loc[i].x, loc[i].y]);
       z.push(data_dict[loc[i].label][0]); //display values at time 0
 
