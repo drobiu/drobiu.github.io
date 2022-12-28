@@ -171,7 +171,7 @@ var data = d3.json("/data/eeg.json").then(data => {
         circle.on("mouseover", function(){
           d3.select("#tooltip").style("visibility", "visible");
           var id = this.id.slice(7);
-          var msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toPrecision(5);
+          var msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
           showTooltip(msg, event);
         });
         circle.on("mouseout", function(){
