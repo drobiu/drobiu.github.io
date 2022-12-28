@@ -510,10 +510,15 @@ const getGrouped = data => new Map(data.columns
             { 'time': v['Time'], 'value': v[c] }))]))
 
 const ChannelsChart = (data, eventData) => {
-    const grouped = getGrouped(data)
+  data = data.slice(0, 10000)
+  // data.columns = ['Time', 'FPz', 'EOG1', 'F3', 'Fz', 'F4', 'EOG2', 'FC5', 'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'Cz', 'T8', 'CP5', 'CP1', 'CP2', 'CP6', 'P7', 'P3', 'Pz', 'P4', 'P8', 'PO7', 'PO3', 'POz', 'PO4', 'PO8', 'O1', 'Oz', 'O2']  
+  // data.columns = ['Time', 'FPz', 'EOG1', 'F3']
+  data.columns = ['Time', 'FPz', 'EOG1']
+  // data.columns = ['Time', 'FPz']
+  const grouped = getGrouped(data)
 
     // Dimensions:
-    const height = 800;
+    const height = 400;
     const width = 1400;
     // TODO: we'll need the left one at least, for
     // the y axis
@@ -523,12 +528,19 @@ const ChannelsChart = (data, eventData) => {
     //   right: 50,
     //   bottom: 50
     // }
+    // const margin = {
+    //     top: 20,
+    //     left: 20,
+    //     right: 20,
+    //     bottom: 20
+    // }
     const margin = {
         top: 0,
-        left: 0,
+        left: 40,
         right: 0,
-        bottom: 0
+        bottom: 20
     }
+       
     // const padding = 30;
     const padding = 0;
     const doublePadding = padding * 2;
@@ -544,16 +556,18 @@ const ChannelsChart = (data, eventData) => {
         .domain(d3.extent(data, d => d.Time))
         .range([0, plotWidth]);
 
-    const y_extent = d3.extent(data, d => d["Cz"])[1]
+    const y_extent = d3.extent(data, d => d["FPz"])[1]
     //TODO: change this extent
     const yScale = d3.scaleLinear()
         .domain(
             [
-                -y_extent,
-                y_extent
+                y_extent,
+                -y_extent
             ]
         )
-        .range([plotHeight, 0]);
+        .range([-plotHeight, 0]);
+        // TODO: add +300 to plotHeight to remove the cutoff
+        // but it's line noise, so we better get rid of it in pre processing
 
     const svg = d3.select("#chart1")
         .append("svg")
@@ -561,21 +575,21 @@ const ChannelsChart = (data, eventData) => {
         .attr("height", margin.top + height + margin.bottom + (padding * grouped.size));
 
     // Plot events
-    eventData.forEach(r => {
-        // latency is the sample number, not the time
-        const samplingFrequency = 128
-        const eventStart = parseInt(r.latency / samplingFrequency) * 1000
-        const eventLength = 200
-        const rectWidth = xScale(eventLength) - margin.left
-        const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
+    // eventData.forEach(r => {
+    //     // latency is the sample number, not the time
+    //     const samplingFrequency = 128
+    //     const eventStart = parseInt(r.latency / samplingFrequency) * 1000
+    //     const eventLength = 200
+    //     const rectWidth = xScale(eventLength) - margin.left
+    //     const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
 
-        svg
-            .append("rect")
-            .attr("width", rectWidth)
-            .attr("height", height)
-            .attr("transform", `translate(${xScale(eventStart)}, 0)`)
-            .attr("fill", fillColor)
-    })
+    //     svg
+    //         .append("rect")
+    //         .attr("width", rectWidth)
+    //         .attr("height", height)
+    //         .attr("transform", `translate(${xScale(eventStart)}, 0)`)
+    //         .attr("fill", fillColor)
+    // })
 
     const g = svg.append("g")
         .attr("transform", "translate(" + [margin.left, margin.top] + ")");
@@ -586,7 +600,7 @@ const ChannelsChart = (data, eventData) => {
         .enter()
         .append("g")
         .attr("transform", function (d, i) {
-            return "translate(" + [padding, i * (doublePadding + plotHeight) + padding] + ")";
+            return "translate(" + [i * padding, i * (doublePadding + plotHeight / 2) + padding] + ")";
         })
 
     // Plot line if needed:
@@ -601,9 +615,10 @@ const ChannelsChart = (data, eventData) => {
         // .attr("stroke-width", 1)
         .attr("fill", "none") 
 
-    // Plot axes     
-    plots.append("g")
-        .attr("transform", "translate(" + [0, plotHeight] + ")")
+    // Plot axes   
+    let lastPlot = plots.nodes()[plots.nodes().length - 1]  
+    // lastPlot.append("g")
+        d3.select(lastPlot).attr("transform", "translate(" + [0, plotHeight] + ")")
         .call(d3.axisBottom(xScale)
             // .ticks(4)
         );
@@ -620,7 +635,12 @@ const ChannelsChart = (data, eventData) => {
 
 d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
   d3.csv('data/events-all.csv').then(eventData => {
-      ChannelsChart(eegData, eventData)
+    // eegData = eegData.slice(0, 100)
+    // let columns = eventData['columns']
+    // eventData = eventData.slice(0, 100)
+    // eventData.columns = columns
+
+    ChannelsChart(eegData, eventData)
       // d3.json("/data/eeg.json").then(data => {
       //   PSDChart(data)
       //   ScalpMapChart(data)
