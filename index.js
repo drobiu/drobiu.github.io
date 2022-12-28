@@ -599,7 +599,7 @@ const ChannelsChart = (data, eventData) => {
         })
         .attr("stroke", "#000000")
         // .attr("stroke-width", 1)
-        .attr("fill", "none")
+        .attr("fill", "none") 
 
     // Plot axes     
     plots.append("g")
