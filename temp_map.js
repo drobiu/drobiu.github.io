@@ -41,9 +41,7 @@ legend.append("g")
   .attr("transform", "translate(50, 10)")
   .attr("height", 340);
 
-var data = d3.json("/data/eeg.json").then(data => {
-
-  PSDChart(data);
+function ScalpMapChart(data) {
 
   for (let i = 0; i < data.length; i++) {
       data_dict[data[i].name] = data[i].data;
@@ -183,8 +181,7 @@ var data = d3.json("/data/eeg.json").then(data => {
     
   });
 
-});
-
+}
 
 // TODO: points_xy never change in this class, right?
 // so no need to pass them every
@@ -630,10 +627,13 @@ const ChannelsChart = (data, eventData) => {
     return svg.node()
 }
 
-
 d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(eegData =>
-    d3.csv('data/eeg-events-3.csv').then(eventData => {
-        ChannelsChart(eegData, eventData)
-    }
-    )
+  d3.csv('data/eeg-events-3.csv').then(eventData => {
+      ChannelsChart(eegData, eventData)
+      d3.json("/data/eeg.json").then(data => {
+        PSDChart(data)
+        ScalpMapChart(data)
+      })
+  }
+  )
 )

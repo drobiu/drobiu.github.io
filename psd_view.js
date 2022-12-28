@@ -302,12 +302,3 @@ const ChannelsChart = (data, eventData) => {
 
     return svg.node()
 }
-
-
-d3.csv("/data/eeg-lab-example-yes-transpose-min.csv").then(eegData =>
-    d3.csv('data/eeg-events-3.csv').then(eventData => {
-        ChannelsChart(eegData, eventData)
-        d3.json("/data/eeg.json").then(PSDChart);
-    }
-    )
-)
