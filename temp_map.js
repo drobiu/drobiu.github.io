@@ -99,9 +99,8 @@ var data = d3.json("/data/eeg.json").then(data => {
   .attr("stroke", "white")
   .attr("stroke-width", 4);
 
-  var points_xy = []; //Store the [x,y] coords
-  state.scalp_xy = points_xy;
-  var z = []; //store the amplitude values
+  
+  var electrodes = [];
 
   var loc = d3.json('/data/locations.json').then(loc => {
     var circles = [];
@@ -111,8 +110,15 @@ var data = d3.json("/data/eeg.json").then(data => {
     for (let i = 0; i < loc.length; i++){
       //Adjust the xy coordinates from json to have the origin on the top-left
       
-      points_xy.push([loc[i].x, loc[i].y]);
-      z.push(data_dict[loc[i].label][0]); //display values at time 0
+      //points_xy.push([loc[i].x, loc[i].y]);
+      //z.push(data_dict[loc[i].label][0]); //display values at time 0
+
+      electrodes.push({
+        "name": loc[i].label,
+        "x": loc[i].x,
+        "y": loc[i].y,
+        "z": data_dict[loc[i].label][0],
+      })
 
       let id = "#cell" + loc[i].x + "_" + loc[i].y;
       d3.selectAll(id).style("fill", "black"); //Arbitrary color to distinguish the electrodes
@@ -135,7 +141,8 @@ var data = d3.json("/data/eeg.json").then(data => {
         
       circles.push(circle);
     }
-    update_z(points_xy, z);
+    state.electrodes = electrodes;
+    update_z(electrodes);
 
     grid.on("mouseover", (event) => {   
       const [xm, ym] = d3.pointer(event);
@@ -144,7 +151,7 @@ var data = d3.json("/data/eeg.json").then(data => {
         var dist = Math.pow((xm-circle.attr("cx")), 2) + Math.pow((ym-circle.attr("cy")), 2);
 
         circle
-          .attr("r", Math.min(Math.max(20 - dist/500, 0), 10));
+          .attr("r", Math.min(Math.max(20 - dist/300, 0), 10));
       })
     });
 
@@ -160,7 +167,7 @@ var data = d3.json("/data/eeg.json").then(data => {
       for (let i = 0; i < loc.length; i++) {
         z.push(data_dict[loc[i].label][slider.value]);
       }
-      update_z(points_xy, z);
+      update_z(electrodes);
       time_label.innerHTML = data_dict['time'][slider.value] + "ms";
     }
 
@@ -175,7 +182,7 @@ var data = d3.json("/data/eeg.json").then(data => {
       for (let i = 0; i < loc.length; i++) {
         z.push(data_dict[loc[i].label][slider.value]);
       }
-      update_z(points_xy, z);
+      update_z(electrodes);
       time_label.innerHTML = data_dict['time'][slider.value] + "ms";
     }
     
@@ -184,7 +191,14 @@ var data = d3.json("/data/eeg.json").then(data => {
 });
 
 
-function update_z(points_xy, z_values) {
+function update_z(electrodes) {
+  var points_xy = [];
+  var z_values = [];
+
+  for (let i = 0; i < electrodes.length; i++){
+    points_xy.push([electrodes[i].x, electrodes[i].y]);
+    z_values.push(electrodes[i].z);
+  }
   // console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
   
@@ -322,8 +336,13 @@ function update(range_vals) {
 
     for (var i = 1; i < state.value_names.length; i++) {
         var check = document.getElementById(state.value_names[i]);
+        var electrode = state.electrodes.find(x => x.name === state.value_names[i]);
+        var id = "#cell" + electrode.x + "_" + electrode.y;
         if (check.checked) {  
-            checked.push(state.value_names[i]);
+          checked.push(state.value_names[i]); 
+          d3.select(id).style("fill", "#ed00e5");
+        } else {
+          d3.select(id).style("fill", "black");
         }
     }
 
@@ -499,7 +518,7 @@ function pointermoved(event) {
 function clicked() {
   state.psd_clicked = !state.psd_clicked;
   if (state.psd_clicked)
-    update_z(state.scalp_xy, state.z);
+    update_z(state.electrodes);
 }
 
 const getGrouped = data => new Map(data.columns
