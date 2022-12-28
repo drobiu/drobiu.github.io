@@ -3,9 +3,18 @@
 <head>
     <script src="https://d3js.org/d3.v7.min.js" charset="utf-8"></script>
     <script src="https://cdn.jsdelivr.net/npm/numeric@1.2.6/numeric-1.2.6.js"></script>
-    <script type='module' src="rbf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bcijs@1.8.0/dist/bci.min.js"></script>    
+    <script type='module' src="rbf.js"></script>    
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="graph-container">
+        <div id="chart1"></div>
+        <div id="chart2"></div>
+      </div>    
+      <fieldset id="selector">
+        <legend>Choose features:</legend>
+    </fieldset>      
     <table>
         <thead>
             <tr>
@@ -23,5 +32,6 @@
         </tbody>
     </table>
     <script type='module' src="temp_map.js"></script>
+    <script src="psd_view.js"></script>
 </body>
 </html>

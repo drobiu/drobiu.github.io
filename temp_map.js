@@ -111,7 +111,7 @@ var data = d3.json("/data/eeg.json").then(data => {
 
       let id = "#cell" + loc[i].x + "_" + loc[i].y;
       d3.selectAll(id).style("fill", "black"); //Arbitrary color to distinguish the electrodes
-    }
+    }    
     update_z(points_xy, z);
     
     //Update intepolation on slider click
@@ -144,6 +144,8 @@ var data = d3.json("/data/eeg.json").then(data => {
 });
 
 
+// TODO: points_xy never change in this class, right?
+// so no need to pass them every
 function update_z(points_xy, z_values) {
   console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
