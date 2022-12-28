@@ -395,6 +395,7 @@ function update(range_vals) {
     }
 
     addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
+    update_z(state.electrodes);
 }
 
 function addScale(x, y, svg, title) {
