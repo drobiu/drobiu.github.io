@@ -186,6 +186,8 @@ var data = d3.json("/data/eeg.json").then(data => {
 });
 
 
+// TODO: points_xy never change in this class, right?
+// so no need to pass them every
 function update_z(points_xy, z_values) {
   // console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
