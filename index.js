@@ -558,8 +558,14 @@ const getGrouped = data => new Map(data.columns
     data.map(v => (
       { 'time': v['Time'], 'value': v[c] }))]))
 
+const getExtents = data => d3.extent(data.columns
+  .filter(c => c !== 'Time')
+  .map(c => [c,
+    data.map(v => v[c])]).flatMap(e => d3.extent(e[1].map(d => parseFloat(d)))))
+
 const ChannelsChart = (data, eventData) => {
   const grouped = getGrouped(data)
+  const extents = getExtents(data)
 
   // Dimensions:
   const height = 800;
@@ -596,12 +602,7 @@ const ChannelsChart = (data, eventData) => {
   const y_extent = d3.extent(data, d => d["Cz"])[1]
   //TODO: change this extent
   const yScale = d3.scaleLinear()
-    .domain(
-      [
-        -y_extent,
-        y_extent
-      ]
-    )
+    .domain(extents)
     .range([plotHeight, 0]);
 
   const svg = d3.select("#chart1")
