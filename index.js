@@ -5,6 +5,7 @@ var slider = document.getElementById("time_slider");
 var time_label = document.getElementById("time_label");
 
 var legend_colors = ["#ff0000", "#fbff00", "#00ff1a", "#00f7ff", "#0400ff"];
+const samplingFrequency = 128
 var state = { svg: null }
 
 //Create legend rectangle as a linear gradient
@@ -354,6 +355,7 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
+  range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency))
   state.svg.selectAll("*:not(line)").remove();
   var checked = [];
 
@@ -610,7 +612,6 @@ const ChannelsChart = (data, eventData) => {
   // Plot events
   eventData.forEach(r => {
     // latency is the sample number, not the time
-    const samplingFrequency = 128
     const eventStart = parseInt(r.latency / samplingFrequency) * 1000
     const eventLength = 200
     const rectWidth = xScale(eventLength) - margin.left
