@@ -309,9 +309,9 @@ function PSDChart(data) {
 
   state.line = svg.append("line")
     .attr("x1", 10)
-    .attr("y1", 0)
+    .attr("y1", 5)
     .attr("x2", 10)
-    .attr("y2", state.height - state.margin.top - state.margin.bottom)
+    .attr("y2", state.height)
     .style("stroke-width", 2)
     .style("stroke", "red")
     .style("fill", "none");
@@ -355,7 +355,7 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
-  range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency))
+  range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency));
   state.svg.selectAll("*:not(line)").remove();
   var checked = [];
 
@@ -386,10 +386,18 @@ function update(range_vals) {
     for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
       ranged_data.push(parseFloat(data_dict[checked[i]][j]));
     }
-    var psd = bci.welch(ranged_data, state.f);
-    state.psds[checked[i]] = psd;
-    state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
-    xy = plot(psd.frequencies, psd.estimates, state.svg)
+	try {
+		var psd = bci.welch(ranged_data, state.f);
+		state.psds[checked[i]] = psd;
+		state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
+		xy = plot(psd.frequencies, psd.estimates, state.svg)
+	} catch (error) {
+		state.svg.append("text")
+        .attr("y", state.height / 2)
+        .attr("x", state.width / 2)
+        .text("Could not compute PSD estimates. Select a larger portion of data.")
+        .style("text-anchor", "middle");
+	}
   }
 
   addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
