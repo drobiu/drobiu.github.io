@@ -484,7 +484,7 @@ function addBrush(xScale, svg, width, height, margin) {
   }
 
   const brush = d3.brushX()
-    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+    .extent([[margin.left, margin.top], [width + margin.right + margin.left, height + margin.top]])
     .on("start brush end", brushed);
 
   svg.append("g")
@@ -571,18 +571,18 @@ const ChannelsChart = (data, eventData) => {
   const width = 700;
   // TODO: we'll need the left one at least, for
   // the y axis
-  // const margin = {
-  //   top: 10,
-  //   left: 50,
-  //   right: 50,
-  //   bottom: 50
-  // }
   const margin = {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0
+    top: 10,
+    left: 50,
+    right: 50,
+    bottom: 50
   }
+  // const margin = {
+  //   top: 0,
+  //   left: 0,
+  //   right: 0,
+  //   bottom: 0
+  // }
   // const padding = 30;
   const padding = 0;
   const doublePadding = padding * 2;
@@ -596,10 +596,11 @@ const ChannelsChart = (data, eventData) => {
   //Scales:
   const xScale = d3.scaleLinear()
     .domain(d3.extent(data, d => d.Time))
-    .range([0, plotWidth]);
+    .range([0, plotWidth + margin.right]);
 
-  const y_extent = d3.extent(data, d => d["Cz"])[1]
-  //TODO: change this extent
+  // const y_extent = d3.extent(data, d => d["Cz"])[1]
+
+  // Extent is now the max extent of all signals
   const yScale = d3.scaleLinear()
     .domain(extents)
     .range([plotHeight, 0]);
@@ -614,14 +615,14 @@ const ChannelsChart = (data, eventData) => {
     // latency is the sample number, not the time
     const eventStart = parseInt(r.latency / samplingFrequency) * 1000
     const eventLength = 200
-    const rectWidth = xScale(eventLength) - margin.left
+    const rectWidth = xScale(eventLength)
     const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
 
     svg
       .append("rect")
       .attr("width", rectWidth)
       .attr("height", height)
-      .attr("transform", `translate(${xScale(eventStart)}, 0)`)
+      .attr("transform", `translate(${xScale(eventStart) + margin.left}, ${margin.top})`)
       .attr("fill", fillColor)
   })
 
@@ -658,16 +659,25 @@ const ChannelsChart = (data, eventData) => {
   // })
   // .attr("text-anchor","middle");
 
-  // Plot axes     
+  // Plot axes 
+  // Axes below individual plots    
   plots.append("g")
-    .attr("transform", "translate(" + [0, plotHeight] + ")")
+  .attr("transform", "translate(" + [0, plotHeight] + ")")
+  .call(d3.axisBottom(xScale)
+  .tickFormat("")
+  );
+
+  // Lower x axis
+  svg.append("g")
+    .attr("transform", "translate(" + [margin.left, grouped.size * plotHeight + margin.top] + ")")
     .call(d3.axisBottom(xScale)
       // .ticks(4)
     );
 
+  // y axis
   plots.append("g")
     .attr("transform", "translate(" + [-padding, 0] + ")")
-    .call(d3.axisLeft(yScale))
+    .call(d3.axisLeft(yScale).tickValues([0]))
 
   // BRUSHY BRUSHY
   addBrush(xScale, svg, width, height, margin)
