@@ -159,7 +159,7 @@ function ScalpMapChart(data, locations) {
     circles.push(circle);
   }
   update_z(electrodes);
-  update([1000,1500]);
+  update([1000,5000]);
 
   grid.on("mouseover", (event) => {
     const [xm, ym] = d3.pointer(event);
@@ -268,12 +268,11 @@ function interpolateRGB(value_arr, coord_arr) {
 
   //Update legend values according to the input amplitude values
   var scale = d3.scaleLinear()
-    .domain(domain)
+    .domain(domain.reverse())
     .range([0, 85]);
 
   var y_axis = d3.axisRight()
     .scale(scale)
-    .tickValues(domain)
     .tickFormat(d3.format(",.0f"));
 
   legend.select("g").call(y_axis);
@@ -286,6 +285,7 @@ function PSDChart(data) {
   state.psds = [];
   state.psd_clicked = false;
   state.psd_info = {};
+  state.maxval = 0;
 
   const margin = { top: 20, right: 30, bottom: 30, left: 60 }
   state.margin = margin;
@@ -388,6 +388,7 @@ function update(range_vals) {
     }
     var psd = bci.welch(ranged_data, state.f);
     state.psds[checked[i]] = psd;
+    state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
     xy = plot(psd.frequencies, psd.estimates, state.svg)
   }
 
@@ -405,7 +406,7 @@ function addScale(x, y, svg, title) {
 
   svg.append("text")
     .attr("x", (state.width / 2))
-    .attr("y", (state.margin.top / 2))
+    .attr("y", 0)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
     .text(title);
@@ -425,11 +426,9 @@ function plot(xs, ys, svg) {
 
   state.psd_xs = xs;
 
-  // TODO: Would be better if we fix the axis domain/range
-  // to the max(eeg) value
   // Add Y axis
   var y = d3.scaleLog()
-    .domain(d3.extent(ys))
+    .domain([d3.extent(ys)[0], state.maxval])
     .range([state.height, 0]);
 
   var data = [];
@@ -465,7 +464,7 @@ function addBrush(xScale, svg, width, height, margin) {
     }
   }
 
-  const brush_size = 500
+  const brush_size = 4000
 
   function beforebrushstarted(event) {
     //TODO: this not global
