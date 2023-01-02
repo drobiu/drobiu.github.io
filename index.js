@@ -159,7 +159,7 @@ function ScalpMapChart(data, locations) {
     circles.push(circle);
   }
   update_z(electrodes);
-  update([1000,1500]);
+  update([1000,5000]);
 
   grid.on("mouseover", (event) => {
     const [xm, ym] = d3.pointer(event);
@@ -268,12 +268,11 @@ function interpolateRGB(value_arr, coord_arr) {
 
   //Update legend values according to the input amplitude values
   var scale = d3.scaleLinear()
-    .domain(domain)
+    .domain(domain.reverse())
     .range([0, 85]);
 
   var y_axis = d3.axisRight()
     .scale(scale)
-    .tickValues(domain)
     .tickFormat(d3.format(",.0f"));
 
   legend.select("g").call(y_axis);
@@ -286,6 +285,7 @@ function PSDChart(data) {
   state.psds = [];
   state.psd_clicked = false;
   state.psd_info = {};
+  state.maxval = 0;
 
   const margin = { top: 20, right: 30, bottom: 30, left: 60 }
   state.margin = margin;
@@ -309,9 +309,9 @@ function PSDChart(data) {
 
   state.line = svg.append("line")
     .attr("x1", 10)
-    .attr("y1", 0)
+    .attr("y1", 5)
     .attr("x2", 10)
-    .attr("y2", state.height - state.margin.top - state.margin.bottom)
+    .attr("y2", state.height)
     .style("stroke-width", 2)
     .style("stroke", "red")
     .style("fill", "none");
@@ -355,7 +355,7 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
-  range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency))
+  range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency));
   state.svg.selectAll("*:not(line)").remove();
   var checked = [];
 
@@ -386,9 +386,18 @@ function update(range_vals) {
     for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
       ranged_data.push(parseFloat(data_dict[checked[i]][j]));
     }
-    var psd = bci.welch(ranged_data, state.f);
-    state.psds[checked[i]] = psd;
-    xy = plot(psd.frequencies, psd.estimates, state.svg)
+	try {
+		var psd = bci.welch(ranged_data, state.f);
+		state.psds[checked[i]] = psd;
+		state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
+		xy = plot(psd.frequencies, psd.estimates, state.svg)
+	} catch (error) {
+		state.svg.append("text")
+        .attr("y", state.height / 2)
+        .attr("x", state.width / 2)
+        .text("Could not compute PSD estimates. Select a larger portion of data.")
+        .style("text-anchor", "middle");
+	}
   }
 
   addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
@@ -405,7 +414,7 @@ function addScale(x, y, svg, title) {
 
   svg.append("text")
     .attr("x", (state.width / 2))
-    .attr("y", (state.margin.top / 2))
+    .attr("y", 0)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
     .text(title);
@@ -425,11 +434,9 @@ function plot(xs, ys, svg) {
 
   state.psd_xs = xs;
 
-  // TODO: Would be better if we fix the axis domain/range
-  // to the max(eeg) value
   // Add Y axis
   var y = d3.scaleLog()
-    .domain(d3.extent(ys))
+    .domain([d3.extent(ys)[0], state.maxval])
     .range([state.height, 0]);
 
   var data = [];
@@ -465,7 +472,7 @@ function addBrush(xScale, svg, width, height, margin) {
     }
   }
 
-  const brush_size = 500
+  const brush_size = 4000
 
   function beforebrushstarted(event) {
     //TODO: this not global
@@ -485,7 +492,7 @@ function addBrush(xScale, svg, width, height, margin) {
   }
 
   const brush = d3.brushX()
-    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+    .extent([[margin.left, margin.top], [width + margin.right + margin.left, height + margin.top]])
     .on("start brush end", brushed);
 
   svg.append("g")
@@ -558,26 +565,32 @@ const getGrouped = data => new Map(data.columns
     data.map(v => (
       { 'time': v['Time'], 'value': v[c] }))]))
 
+const getExtents = data => d3.extent(data.columns
+  .filter(c => c !== 'Time')
+  .map(c => [c,
+    data.map(v => v[c])]).flatMap(e => d3.extent(e[1].map(d => parseFloat(d)))))
+
 const ChannelsChart = (data, eventData) => {
   const grouped = getGrouped(data)
+  const extents = getExtents(data)
 
   // Dimensions:
   const height = 800;
   const width = 700;
   // TODO: we'll need the left one at least, for
   // the y axis
-  // const margin = {
-  //   top: 10,
-  //   left: 50,
-  //   right: 50,
-  //   bottom: 50
-  // }
   const margin = {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0
+    top: 10,
+    left: 50,
+    right: 50,
+    bottom: 50
   }
+  // const margin = {
+  //   top: 0,
+  //   left: 0,
+  //   right: 0,
+  //   bottom: 0
+  // }
   // const padding = 30;
   const padding = 0;
   const doublePadding = padding * 2;
@@ -591,17 +604,13 @@ const ChannelsChart = (data, eventData) => {
   //Scales:
   const xScale = d3.scaleLinear()
     .domain(d3.extent(data, d => d.Time))
-    .range([0, plotWidth]);
+    .range([0, plotWidth + margin.right]);
 
-  const y_extent = d3.extent(data, d => d["Cz"])[1]
-  //TODO: change this extent
+  // const y_extent = d3.extent(data, d => d["Cz"])[1]
+
+  // Extent is now the max extent of all signals
   const yScale = d3.scaleLinear()
-    .domain(
-      [
-        -y_extent,
-        y_extent
-      ]
-    )
+    .domain(extents)
     .range([plotHeight, 0]);
 
   const svg = d3.select("#chart1")
@@ -614,14 +623,14 @@ const ChannelsChart = (data, eventData) => {
     // latency is the sample number, not the time
     const eventStart = parseInt(r.latency / samplingFrequency) * 1000
     const eventLength = 200
-    const rectWidth = xScale(eventLength) - margin.left
+    const rectWidth = xScale(eventLength)
     const fillColor = r.type == 'square' ? 'Khaki' : 'DarkSeaGreen'
 
     svg
       .append("rect")
       .attr("width", rectWidth)
       .attr("height", height)
-      .attr("transform", `translate(${xScale(eventStart)}, 0)`)
+      .attr("transform", `translate(${xScale(eventStart) + margin.left}, ${margin.top})`)
       .attr("fill", fillColor)
   })
 
@@ -658,16 +667,25 @@ const ChannelsChart = (data, eventData) => {
   // })
   // .attr("text-anchor","middle");
 
-  // Plot axes     
+  // Plot axes 
+  // Axes below individual plots    
   plots.append("g")
-    .attr("transform", "translate(" + [0, plotHeight] + ")")
+  .attr("transform", "translate(" + [0, plotHeight] + ")")
+  .call(d3.axisBottom(xScale)
+  .tickFormat("")
+  );
+
+  // Lower x axis
+  svg.append("g")
+    .attr("transform", "translate(" + [margin.left, grouped.size * plotHeight + margin.top] + ")")
     .call(d3.axisBottom(xScale)
       // .ticks(4)
     );
 
+  // y axis
   plots.append("g")
     .attr("transform", "translate(" + [-padding, 0] + ")")
-    .call(d3.axisLeft(yScale))
+    .call(d3.axisLeft(yScale).tickValues([0]))
 
   // BRUSHY BRUSHY
   addBrush(xScale, svg, width, height, margin)
