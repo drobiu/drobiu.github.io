@@ -52,9 +52,9 @@ var tooltip = d3.select("body")
 function showTooltip(label, event) {
   d3.select("#tooltip")
     .html(label)
-    .style("top", (event.pageY - 80) + "px").style("left", (event.pageX + 20) + "px")
-    .style("background-color", "rgba(114, 114, 114, 0.75)")
-    .style("border-radius", "8px")
+    .style("top", (event.pageY - 50) + "px").style("left", (event.pageX + 20) + "px")
+    .style("background-color", "rgba(114, 114, 114, 0.55)")
+    .style("border-radius", "5px")
     .style("padding", "10px 10px 10px 10px")
     .style("color", "white")
     
@@ -128,9 +128,6 @@ function ScalpMapChart(data, locations) {
   for (let i = 0; i < loc.length; i++) {
     //Adjust the xy coordinates from json to have the origin on the top-left
 
-    //points_xy.push([loc[i].x, loc[i].y]);
-    //z.push(data_dict[loc[i].label][0]); //display values at time 0
-
     electrodes.push({
       "name": loc[i].label,
       "x": loc[i].x,
@@ -162,8 +159,7 @@ function ScalpMapChart(data, locations) {
           msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
         } else{
           msg = id;
-        }
-        //d3.select("#tooltip").attr("class", d3.select("#tooltip").style("visibility") === "hidden" ? "animate_in" : "animate_out"); 
+        } 
         showTooltip(msg, event);
       });
 
@@ -205,31 +201,6 @@ function ScalpMapChart(data, locations) {
       circle.attr("r", 0);
     })
   });
-
-  //Update intepolation on slider click
-  slider.onchange = function (event) {
-    z = [];
-    for (let i = 0; i < loc.length; i++) {
-      z.push(data_dict[loc[i].label][slider.value]);
-    }
-    update_z(electrodes);
-    time_label.innerHTML = data_dict['time'][slider.value] + "ms";
-  }
-
-  //Update interpolation on slider scroll
-  slider.onwheel = function (event) {
-    z = [];
-    if (event.deltaY < 0) {
-      slider.value = parseInt(slider.value) + 1;
-    } else {
-      slider.value = parseInt(slider.value) - 1;
-    }
-    for (let i = 0; i < loc.length; i++) {
-      z.push(data_dict[loc[i].label][slider.value]);
-    }
-    update_z(electrodes);
-    time_label.innerHTML = data_dict['time'][slider.value] + "ms";
-  }
 }
 
 function update_z(electrodes) {
@@ -295,7 +266,7 @@ function interpolateRGB(value_arr, coord_arr) {
     .scale(scale)
     .tickFormat(d3.format(",.0f"));
 
-  legend.select("g").call(y_axis);
+  legend.select("g").call(y_axis).attr("font-family", "'Gill Sans MT', sans-serif");
   legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6");
 }
 
@@ -431,10 +402,10 @@ function update(range_vals) {
 function addScale(x, y, svg, title) {
   svg.append("g")
     .attr("transform", "translate(0," + state.height + ")")
-    .call(d3.axisBottom(x));
+    .call(d3.axisBottom(x)).attr("font-family", "'Gill Sans MT', sans-serif");
 
   svg.append("g")
-    .call(d3.axisLeft(y));
+    .call(d3.axisLeft(y)).attr("font-family", "'Gill Sans MT', sans-serif");
 
   svg.append("text")
     .attr("x", (state.width / 2))
@@ -598,7 +569,7 @@ const ChannelsChart = (data, eventData) => {
 
   // Dimensions:
   const height = 800;
-  const width = 700;
+  const width = 1200;
   // TODO: we'll need the left one at least, for
   // the y axis
   const margin = {
@@ -637,7 +608,7 @@ const ChannelsChart = (data, eventData) => {
 
   const svg = d3.select("#chart1")
     .append("svg")
-    .attr("width", margin.left + width + margin.right)
+    .attr("width", margin.left + width+ + margin.right)
     .attr("height", margin.top + height + margin.bottom + (padding * grouped.size));
 
   // Plot events
@@ -695,19 +666,20 @@ const ChannelsChart = (data, eventData) => {
   .attr("transform", "translate(" + [0, plotHeight] + ")")
   .call(d3.axisBottom(xScale)
   .tickFormat("")
-  );
+  ).attr("font-family", "'Gill Sans MT', sans-serif");
 
   // Lower x axis
   svg.append("g")
     .attr("transform", "translate(" + [margin.left, grouped.size * plotHeight + margin.top] + ")")
     .call(d3.axisBottom(xScale)
       // .ticks(4)
-    );
+    ).attr("font-family", "'Gill Sans MT', sans-serif");
 
   // y axis
   plots.append("g")
     .attr("transform", "translate(" + [-padding, 0] + ")")
     .call(d3.axisLeft(yScale).tickValues([0]))
+    .attr("font-family", "'Gill Sans MT', sans-serif")
 
   // BRUSHY BRUSHY
   addBrush(xScale, svg, width, height, margin)
