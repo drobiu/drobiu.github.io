@@ -9,25 +9,25 @@
 </head>
 <body>
     <div class="graph-container">
-        <div id="chart1"></div>
-        <div id="chart2"></div>
-      </div>     
-    <table>
-        <thead>
-            <tr>
-                <th id="grid"></th>
-                <th id="legend"></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td colspan="2">
-                    <input type="range" id="time_slider" min="0" value="0" max="30503" step="1"></input>
-                    <p id="time_label" >0ms</p> 
-                </td>
-            </tr>
-        </tbody>
-    </table>
+        <table>
+            <thead>
+              <tr>
+                <th colspan="3">
+                    <div id="chart1"></div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div id="chart2"></div></td>
+                <td id="grid"></td>
+                <td id="legend"></td>
+              </tr>
+            </tbody>
+        </table>    
+    </div>     
+
+    
     <script type='module' src="index.js"></script>  
     <fieldset id="selector">
         <legend>Choose features:</legend>

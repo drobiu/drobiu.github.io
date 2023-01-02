@@ -5,6 +5,7 @@ var slider = document.getElementById("time_slider");
 var time_label = document.getElementById("time_label");
 
 var legend_colors = ["#ff0000", "#fbff00", "#00ff1a", "#00f7ff", "#0400ff"];
+var legend_colors = ["#0400ff", "#00f7ff", "#00ff1a", "#fbff00", "#ff0000"];
 const samplingFrequency = 128
 var state = { svg: null }
 
@@ -55,7 +56,8 @@ function showTooltip(label, event) {
     .style("background-color", "rgba(114, 114, 114, 0.75)")
     .style("border-radius", "8px")
     .style("padding", "10px 10px 10px 10px")
-    .style("color", "white");
+    .style("color", "white")
+    
 }
 
 function ScalpMapChart(data, locations) {
@@ -146,20 +148,30 @@ function ScalpMapChart(data, locations) {
       .attr("cx", loc[i].x * mult + 1)
       .attr("cy", loc[i].y * mult + 1)
       .attr("r", 0)
-      .attr("fill", "green")
+      .attr("fill", "white")
       .attr("stroke", "black")
       .attr("stroke-width", 2)
       .on("click", () => {
         var checkbox = document.getElementById(loc[i].label);
         checkbox.checked = !checkbox.checked;
-        d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "green" : "red");
-        update();
+        d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "white" : "black");
+        update(state.range_vals);
+        var id = loc[i].label;
+        var msg = "";
+        if (checkbox.checked){
+          msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
+        } else{
+          msg = id;
+        }
+        //d3.select("#tooltip").attr("class", d3.select("#tooltip").style("visibility") === "hidden" ? "animate_in" : "animate_out"); 
+        showTooltip(msg, event);
       });
 
     circles.push(circle);
   }
+  update([0,4000]);
+  state.range_vals = [0,4000];
   update_z(electrodes);
-  update([1000,5000]);
 
   grid.on("mouseover", (event) => {
     const [xm, ym] = d3.pointer(event);
@@ -171,11 +183,18 @@ function ScalpMapChart(data, locations) {
       circle.on("mouseover", function () {
         d3.select("#tooltip").style("visibility", "visible");
         var id = this.id.slice(7);
-        var msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
+        var msg = "";
+        if (document.getElementById(id).checked){
+          msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
+        } else{
+          msg = id;
+        }
+        d3.select("#tooltip").attr("class","animate_in");
         showTooltip(msg, event);
       });
       circle.on("mouseout", function () {
-        d3.select("#tooltip").style("visibility", "hidden");
+        d3.select("#tooltip").attr("class","animate_out");
+        //d3.select("#tooltip").style("visibility", "hidden");
       });
 
     })
@@ -223,6 +242,7 @@ function update_z(electrodes) {
       z_values.push(electrodes[i].z);
     }
   }
+  
   // console.log(z_values);
   var rbf = RBF(points_xy, z_values); //Radial basis intepolation of the amplitute values
 
@@ -365,7 +385,7 @@ function update(range_vals) {
     var id = "#cell" + electrode.x + "_" + electrode.y;
     if (check.checked) {
       checked.push(state.value_names[i]);
-      d3.select(id).style("fill", "#ed00e5");
+      d3.select(id).style("fill", "white");
       state.electrodes.find(x => x.name === state.value_names[i]).checked = true;
     } else {
       d3.select(id).style("fill", "black");
@@ -383,9 +403,13 @@ function update(range_vals) {
   var xy = [];
   for (var i = 0; i < checked.length; i++) {
     var ranged_data = []
+    var sum = 0;
     for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
-      ranged_data.push(parseFloat(data_dict[checked[i]][j]));
+      var curr = parseFloat(data_dict[checked[i]][j]);
+      ranged_data.push(curr);
+      sum = sum + curr;
     }
+    state.electrodes.find(x => x.name === checked[i]).z = sum / ranged_data.length
 	try {
 		var psd = bci.welch(ranged_data, state.f);
 		state.psds[checked[i]] = psd;
@@ -399,7 +423,7 @@ function update(range_vals) {
         .style("text-anchor", "middle");
 	}
   }
-
+  //console.log(ranged_data);
   addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
   update_z(state.electrodes);
 }
@@ -532,10 +556,8 @@ function pointermoved(event) {
     if (Object.keys(data).includes(name)) {
       var current_z = state.psds[name].estimates[parseInt(rounded / psd_dx)]
       z.push(current_z);
-      state.electrodes.find(x => x.name === name).z = current_z;
     } else {
       z.push(0);
-      state.electrodes.find(x => x.name === name).z = 0;
     }
   })
 
@@ -696,6 +718,33 @@ const ChannelsChart = (data, eventData) => {
 
 d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
   d3.csv('data/events-all.csv').then(eventData => {
+    const erpTimeIdx = [...Array(128).keys()]
+
+    const template = {"Time":0,"FPz":0,"EOG1":0,"F3":0,"Fz":0,"F4":0,"EOG2":0,"FC5":0,"FC1":0,"FC2":0,"FC6":0,"T7":0,"C3":0,"C4":0,"Cz":0,"T8":0,"CP5":0,"CP1":0,"CP2":0,"CP6":0,"P7":0,"P3":0,"Pz":0,"P4":0,"P8":0,"PO7":0,"PO3":0,"POz":0,"PO4":0,"PO8":0,"O1":0,"Oz":0,"O2":0}
+
+    let erpObjectAcc = structuredClone(template)
+
+    const erpData = 
+      erpTimeIdx
+        .map(erpTimeId => 
+          eventData
+            .filter(e => e.type == `square`)
+            .map(e => parseInt(e.latency))
+            .map(latencyId => eegData.slice(latencyId-13,latencyId+115))
+            .map(e => e.map((eegForErpEvent, i) => ({'index': i, data: eegForErpEvent})))
+            .flat()
+            .filter(i => i.index == erpTimeId)
+          )
+        .map(i => {
+          erpObjectAcc = structuredClone(template)
+
+          return i.reduce((accumulator, currentValue) => { 
+              Object.entries(erpObjectAcc)
+                .forEach(e => accumulator[e[0]] = (parseFloat(accumulator[e[0]]) + parseFloat(currentValue.data[e[0]])) / 2)
+                
+              return accumulator
+            }, erpObjectAcc)}
+          )
     ChannelsChart(eegData, eventData)
     d3.json("/data/eeg.json").then(data => {
       PSDChart(data);
