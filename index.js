@@ -512,7 +512,7 @@ function plot(xs, ys, svg, line_id) {
     .attr("id", line_id+"_line")
     .attr("fill", "none")
     .attr("stroke", color_dict[line_id])
-    .attr("stroke-width", 1.5)
+    .attr("stroke-width", 0.5)
     .attr("d", d3.line()
       .x(d => x(d.t))
       .y(d => y(d.d))
@@ -725,10 +725,8 @@ const ChannelsChart = (data, eventData) => {
         .y(d => yScale(d.value))
         (d[1])
     })
-    .attr("stroke", function(d){
-      return color_dict[d[0]];
-    })
-    // .attr("stroke-width", 1)
+    .attr("stroke", "black")
+    .attr("stroke-width", 0.7)
     .attr("fill", "none")
 
   // // Plot names if needed:
@@ -769,7 +767,8 @@ const ChannelsChart = (data, eventData) => {
         .attr("transform", "translate(" + [margin.left , i * plotHeight + margin.top] + ")")
         .call(d3.axisLeft(yScale)
             .ticks(1).tickFormat(activeNames[i])
-        ).attr("font-family", "'Gill Sans MT', sans-serif"));
+        ).attr("font-family", "'Gill Sans MT', sans-serif")
+        .selectAll("text").style("stroke", color_dict[activeNames[i]]));
 
     // BRUSHY BRUSHY
     addBrush(xScale, svg, width, height, margin)
