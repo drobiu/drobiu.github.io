@@ -1,9 +1,39 @@
 var data_dict = {};
+var color_dict = {
+  'FPz': '#808080',
+  'F3': '#2e8b57',
+  'Fz': '#7f0000',
+  'F4': '#808000',
+  'FC5': '#483d8b',
+  'FC1': '#008000',
+  'FC2': '#008080',
+  'FC6': '#4682b4',
+  'T7': '#d2691e',
+  'C3': '#00008b',
+  'Cz': '#32cd32',
+  'C4': '#daa520',
+  'T8': '#800080',
+  'CP5': '#b03060',
+  'CP1': '#d2b48c',
+  'CP2': '#ff0000',
+  'CP6': '#00ff00',
+  'P7': '#9400d3',
+  'P3': '#00fa9a',
+  'Pz': '#dc143c',
+  'P4': '#00ffff',
+  'P8': '#0000ff',
+  'PO7': '#adff2f',
+  'PO3': '#da70d6',
+  'POz': '#d8bfd8',
+  'PO4': '#ff00ff',
+  'PO8': '#1e90ff',
+  'O1': '#fa8072',
+  'Oz': '#ffff54',
+  'O2': '#87ceeb',
+  'EOG1': '#ff1493',
+  'EOG2': '#7b68ee',
+};
 import RBF from './rbf.js';
-
-var slider = document.getElementById("time_slider");
-var time_label = document.getElementById("time_label");
-
 
 var legend_colors = ["#0400ff", "#00f7ff", "#00ff1a", "#fbff00", "#ff0000"];
 const samplingFrequency = 128
@@ -56,8 +86,7 @@ function showTooltip(label, event) {
     .style("background-color", "rgba(114, 114, 114, 0.55)")
     .style("border-radius", "5px")
     .style("padding", "10px 10px 10px 10px")
-    .style("color", "white")
-    
+    .style("color", "white")    
 }
 
 function ScalpMapChart(data, locations) {
@@ -66,6 +95,7 @@ function ScalpMapChart(data, locations) {
   for (let i = 0; i < data.length; i++) {
     data_dict[data[i].name] = data[i].data;
     if (data[i].name !== 'time'){
+      //color_dict[data[i].name] = locations[i-1].color;
       var curr_max = Math.max(...data[i].data);
       var curr_min = Math.min(...data[i].data);
       if (curr_max > dataset_max){
@@ -481,7 +511,7 @@ function plot(xs, ys, svg, line_id) {
     .datum(data)
     .attr("id", line_id+"_line")
     .attr("fill", "none")
-    .attr("stroke", "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")")
+    .attr("stroke", color_dict[line_id])
     .attr("stroke-width", 1.5)
     .attr("d", d3.line()
       .x(d => x(d.t))
@@ -695,7 +725,9 @@ const ChannelsChart = (data, eventData) => {
         .y(d => yScale(d.value))
         (d[1])
     })
-    .attr("stroke", "#000000")
+    .attr("stroke", function(d){
+      return color_dict[d[0]];
+    })
     // .attr("stroke-width", 1)
     .attr("fill", "none")
 
