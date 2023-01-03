@@ -491,7 +491,7 @@ function plot(xs, ys, svg, line_id) {
     })
     .on("mouseleave", function () {
       d3.select(this).style("filter", null)
-      .attr("stroke-width", 1.5);
+      .attr("stroke-width", 0.5);
       d3.select("#circle_"+line_id).attr("r", 0);
     })
 
