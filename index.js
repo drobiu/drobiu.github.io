@@ -61,10 +61,25 @@ function showTooltip(label, event) {
 }
 
 function ScalpMapChart(data, locations) {
-
+  var dataset_max = -Number.MAX_VALUE;
+  var dataset_min = Number.MAX_VALUE;
   for (let i = 0; i < data.length; i++) {
     data_dict[data[i].name] = data[i].data;
+    if (data[i].name !== 'time'){
+      var curr_max = Math.max(...data[i].data);
+      var curr_min = Math.min(...data[i].data);
+      if (curr_max > dataset_max){
+        dataset_max = curr_max;
+      }
+      if (curr_min < dataset_min){
+        dataset_min = curr_min;
+      }
+    }    
   }
+  //console.log(dataset_max);
+  //console.log(dataset_min);
+  state.dataset_max = dataset_max;
+  state.dataset_min = dataset_min;
   var data_length = data_dict['time'].length;
   var value_names = Object.keys(data_dict);
 
@@ -187,10 +202,13 @@ function ScalpMapChart(data, locations) {
         }
         d3.select("#tooltip").attr("class","animate_in");
         showTooltip(msg, event);
+        state.svg.selectChild("#"+id+"_line").style("filter", "url(#glow)")
+        .attr("stroke-width", 3);
       });
       circle.on("mouseout", function () {
         d3.select("#tooltip").attr("class","animate_out");
-        //d3.select("#tooltip").style("visibility", "hidden");
+        state.svg.selectChild("#"+this.id.slice(7)+"_line").style("filter", null)
+        .attr("stroke-width", 1,5);
       });
 
     })
@@ -235,24 +253,29 @@ function interpolateRGB(value_arr, coord_arr) {
   //red, yellow, green, light_blue, blue
   var colors = ["#ff0000", "#fbff00", "#00ff1a", "#00f7ff", "#0400ff"]
 
-  var max = Math.max.apply(null, value_arr);
-  var min = Math.min.apply(null, value_arr);
+  //var max = Math.max.apply(null, value_arr);
+  //var min = Math.min.apply(null, value_arr);
+
+  var max = state.dataset_max /10;
+  var min = state.dataset_min /10;
 
   //Build domain values based on the received value_arr
-  var domain = [min];
+  
   var increment = (Math.abs(min) + Math.abs(max)) / (colors.length - 1);
-  for (var i = 0; i < colors.length - 2; i++) {
-    var previous = domain[domain.length - 1];
-    domain.push(previous + increment);
-  }
-  domain.push(max);
+  //var increment = (min + max) / (colors.length - 1);
+  var domain = [min, min+increment, 0, increment, max];
+  // for (var i = 0; i < colors.length - 2; i++) {
+  //   var previous = domain[domain.length - 1];
+  //   domain.push(previous + increment);
+  // }
+  //domain.push(max);
 
   var getColor = d3.scaleLinear()
     .domain(domain)
     .range(colors);
 
   //Assign interpolatedRGB values to every sqaure in the grid
-  for (i = 0; i < value_arr.length; i++) {
+  for (var i = 0; i < value_arr.length; i++) {
     let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
     d3.selectAll(id).attr("fill", getColor(value_arr[i]));
   }
@@ -260,7 +283,7 @@ function interpolateRGB(value_arr, coord_arr) {
   //Update legend values according to the input amplitude values
   var scale = d3.scaleLinear()
     .domain(domain.reverse())
-    .range([0, 85]);
+    .range([0, 100]);
 
   var y_axis = d3.axisRight()
     .scale(scale)
@@ -385,7 +408,7 @@ function update(range_vals) {
 		var psd = bci.welch(ranged_data, state.f);
 		state.psds[checked[i]] = psd;
 		state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
-		xy = plot(psd.frequencies, psd.estimates, state.svg)
+		xy = plot(psd.frequencies, psd.estimates, state.svg, checked[i]);
 	} catch (error) {
 		state.svg.append("text")
         .attr("y", state.height / 2)
@@ -415,13 +438,12 @@ function addScale(x, y, svg, title) {
     .text(title);
 }
 
-function plot(xs, ys, svg) {
+function plot(xs, ys, svg, line_id) {
   var x = d3.scaleLinear()
     .domain(d3.extent(xs))
     .range([0, state.width]);
 
   state.psd_x = x;
-
   // Initialized here for speed; can be initialized elsewhere for more speed
   state.psd_inv_x = d3.scaleLinear()
     .domain([0, state.width])
@@ -439,16 +461,39 @@ function plot(xs, ys, svg) {
     data.push({ t: xs[i], d: ys[i] });
   }
 
+  //Container for the gradients
+  var defs = svg.append("defs");
+
+  //Filter for the outside glow
+  var filter = defs.append("filter")
+    .attr("id","glow");
+  filter.append("feGaussianBlur")
+    .attr("stdDeviation","4.5")
+    .attr("result","coloredBlur");
+  var feMerge = filter.append("feMerge");
+  feMerge.append("feMergeNode")
+    .attr("in","coloredBlur");
+  feMerge.append("feMergeNode")
+    .attr("in","SourceGraphic");
+
   // Add the line
   svg.append("path")
     .datum(data)
+    .attr("id", line_id+"_line")
     .attr("fill", "none")
     .attr("stroke", "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")")
     .attr("stroke-width", 1.5)
     .attr("d", d3.line()
       .x(d => x(d.t))
       .y(d => y(d.d))
-    )
+    ).on("mouseenter", function() {
+      d3.select(this).style("filter", "url(#glow)")
+        .attr("stroke-width", 3);
+    })
+    .on("mouseleave", function () {
+      d3.select(this).style("filter", null)
+      .attr("stroke-width", 1.5);
+    })
 
   return [x, y];
 }
