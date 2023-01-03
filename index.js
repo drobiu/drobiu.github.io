@@ -369,7 +369,7 @@ function PSDChart(data) {
 
   state.data_length = data_dict['time'].length;
 
-  state.f = 1 / data_dict['time'][1];
+  state.f = 128;
 
   const value_names = Object.keys(data_dict);
 
@@ -483,7 +483,7 @@ function plot(xs, ys, svg, line_id) {
 
   // Add Y axis
   var y = d3.scaleLog()
-    .domain([d3.extent(ys)[0], state.maxval])
+    .domain([1/10000, state.maxval])
     .range([state.height, 0]);
 
   var data = [];
@@ -523,7 +523,7 @@ function plot(xs, ys, svg, line_id) {
     })
     .on("mouseleave", function () {
       d3.select(this).style("filter", null)
-      .attr("stroke-width", 1.5);
+      .attr("stroke-width", 0.5);
       d3.select("#circle_"+line_id).attr("r", 0);
     })
 
@@ -742,29 +742,39 @@ const ChannelsChart = (data, eventData) => {
 
   // Plot axes 
   // Axes below individual plots    
-  plots.append("g")
-  .attr("transform", "translate(" + [0, plotHeight] + ")")
-  .call(d3.axisBottom(xScale)
-  .tickFormat("")
-  ).attr("font-family", "'Gill Sans MT', sans-serif");
+//   plots.append("g")
+//   .attr("transform", "translate(" + [0, plotHeight] + ")")
+//   .call(d3.axisBottom(xScale)
+//   .tickFormat("")
+//   );
 
   // Lower x axis
-  svg.append("g")
-    .attr("transform", "translate(" + [margin.left, grouped.size * plotHeight + margin.top] + ")")
-    .call(d3.axisBottom(xScale)
-      // .ticks(4)
-    ).attr("font-family", "'Gill Sans MT', sans-serif");
+    svg.append("g")
+        .attr("transform", "translate(" + [margin.left, grouped.size * plotHeight + margin.top] + ")")
+        .call(d3.axisBottom(xScale)
+        // .ticks(4)
+        ).attr("font-family", "'Gill Sans MT', sans-serif");
 
-  // y axis
-  plots.append("g")
-    .attr("transform", "translate(" + [-padding, 0] + ")")
-    .call(d3.axisLeft(yScale).tickValues([0]))
-    .attr("font-family", "'Gill Sans MT', sans-serif")
+    // y axis
+    // plots.append("g")
+    //     .attr("transform", "translate(" + [-padding, 0] + ")")
+    //     .call(d3.axisLeft(yScale).tickFormat((d, i) => console.log(d, i)))
+    //     .attr("font-family", "'Gill Sans MT', sans-serif");
 
-  // BRUSHY BRUSHY
-  addBrush(xScale, svg, width, height, margin)
+    //     console.log(plots)
 
-  return svg.node()
+    const activeNames = d3.map(plots.data(), d => d[0]) 
+
+    plots.each((d, i) => svg.append("g")
+        .attr("transform", "translate(" + [margin.left , i * plotHeight + margin.top] + ")")
+        .call(d3.axisLeft(yScale)
+            .ticks(1).tickFormat(activeNames[i])
+        ).attr("font-family", "'Gill Sans MT', sans-serif"));
+
+    // BRUSHY BRUSHY
+    addBrush(xScale, svg, width, height, margin)
+
+    return svg.node()
 }
 
 
