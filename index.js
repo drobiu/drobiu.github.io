@@ -4,7 +4,7 @@ import RBF from './rbf.js';
 var slider = document.getElementById("time_slider");
 var time_label = document.getElementById("time_label");
 
-var legend_colors = ["#ff0000", "#fbff00", "#00ff1a", "#00f7ff", "#0400ff"];
+
 var legend_colors = ["#0400ff", "#00f7ff", "#00ff1a", "#fbff00", "#ff0000"];
 const samplingFrequency = 128
 var state = { svg: null }
@@ -251,18 +251,17 @@ function update_z(electrodes) {
 //function to interpolateRGB values between [min,max] for selected amplitude values
 function interpolateRGB(value_arr, coord_arr) {
   //red, yellow, green, light_blue, blue
-  var colors = ["#ff0000", "#fbff00", "#00ff1a", "#00f7ff", "#0400ff"]
+  var colors = ["#ff0000","#fbff00", "#00ff1a", "#00f7ff", "#0400ff"]
 
   //var max = Math.max.apply(null, value_arr);
   //var min = Math.min.apply(null, value_arr);
 
-  var max = state.dataset_max /10;
-  var min = state.dataset_min /10;
+  var max = state.dataset_max;
+  var min = state.dataset_min;
 
   //Build domain values based on the received value_arr
   
   var increment = (Math.abs(min) + Math.abs(max)) / (colors.length - 1);
-  //var increment = (min + max) / (colors.length - 1);
   var domain = [min, min+increment, 0, increment, max];
   // for (var i = 0; i < colors.length - 2; i++) {
   //   var previous = domain[domain.length - 1];
@@ -489,10 +488,12 @@ function plot(xs, ys, svg, line_id) {
     ).on("mouseenter", function() {
       d3.select(this).style("filter", "url(#glow)")
         .attr("stroke-width", 3);
+      d3.select("#circle_"+line_id).attr("r", 10);
     })
     .on("mouseleave", function () {
       d3.select(this).style("filter", null)
       .attr("stroke-width", 1.5);
+      d3.select("#circle_"+line_id).attr("r", 0);
     })
 
   return [x, y];
