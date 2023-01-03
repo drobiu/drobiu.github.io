@@ -412,10 +412,11 @@ function update(range_vals) {
         .attr("y", state.height / 2)
         .attr("x", state.width / 2)
         .text("Could not compute PSD estimates. Select a larger portion of data.")
+        .attr("font-family", "'Gill Sans MT', sans-serif")
         .style("text-anchor", "middle");
 	}
   }
-  //console.log(ranged_data);
+
   addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
   update_z(state.electrodes);
 }
@@ -433,6 +434,7 @@ function addScale(x, y, svg, title) {
     .attr("y", 0)
     .attr("text-anchor", "middle")
     .style("font-size", "16px")
+    .attr("font-family", "'Gill Sans MT', sans-serif")
     .text(title);
 }
 
@@ -507,8 +509,9 @@ function addBrush(xScale, svg, width, height, margin) {
       console.log(`no selection`);
     } else {
       console.log(selection.map(xScale.invert))
-      if (state.svg)
+      if (state.svg && event.type === 'end') {
         update(selection.map(xScale.invert))
+      }
     }
   }
 
