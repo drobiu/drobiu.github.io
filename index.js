@@ -167,7 +167,7 @@ function ScalpMapChart(data, locations) {
         var checkbox = document.getElementById(loc[i].label);
         checkbox.checked = !checkbox.checked;
         d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "white" : "black");
-        update(state.range_vals);
+        update(state.ranges);
         var id = loc[i].label;
         var msg = "";
         if (checkbox.checked){
@@ -181,7 +181,7 @@ function ScalpMapChart(data, locations) {
     circles.push(circle);
   }
   update([0,4000]);
-  state.range_vals = [0,4000];
+  state.ranges = [0,4000];
   update_z(electrodes);
 
   grid.on("mouseover", (event) => {
@@ -256,8 +256,8 @@ function interpolateRGB(value_arr, coord_arr) {
   //var max = Math.max.apply(null, value_arr);
   //var min = Math.min.apply(null, value_arr);
 
-  var max = state.dataset_max;
-  var min = state.dataset_min;
+  var max = state.dataset_max / 10;
+  var min = state.dataset_min / 10;
 
   //Build domain values based on the received value_arr
   
@@ -368,6 +368,10 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
+  if (range_vals === undefined) {
+    range_vals = state.ranges;
+  }
+  state.ranges = range_vals;
   range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency));
   state.svg.selectAll("*:not(line)").remove();
   var checked = [];
@@ -385,12 +389,7 @@ function update(range_vals) {
       state.electrodes.find(x => x.name === state.value_names[i]).checked = false;
     }
   }
-
-  if (range_vals === undefined) {
-    range_vals = state.ranges;
-  }
-
-  state.ranges = range_vals;
+  
   state.psds = {};
 
   var xy = [];
