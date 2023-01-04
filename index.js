@@ -502,18 +502,19 @@ function plot(xs, ys, svg, line_id) {
 function addBrush(xScale, svg, width, height, margin) {
     // BRUSHY BRUSHY
 
+    const brush_size = 4000
+
     function brushed(event) {
         const selection = event.selection;
         if (selection === null) {
             console.log(`no selection`);
         } else {
-            console.log(selection.map(xScale.invert))
+            var selectionRange = selection.map(xScale.invert).map(d => parseFloat(d) - brush_size);
+            console.log(selectionRange)
             if (state.svg)
-                update(selection.map(xScale.invert))
+                update(selectionRange)
         }
     }
-
-    const brush_size = 4000
 
     function beforebrushstarted(event) {
         //TODO: this not global
@@ -538,7 +539,7 @@ function addBrush(xScale, svg, width, height, margin) {
 
     svg.append("g")
         .call(brush)
-        .call(brush.move, [1000, 1000 + brush_size].map(xScale))
+        .call(brush.move, [5000, 5000 + brush_size].map(xScale))
         .call(g => g.select(".overlay")
             .datum({ type: "selection" })
             .on("mousedown touchstart", beforebrushstarted));
