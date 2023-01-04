@@ -776,42 +776,55 @@ const ChannelsChart = (data, eventData) => {
     return svg.node()
 }
 
+const formatDataForPSD = (eegData) => eegData.columns
+  .map(c => ({
+    name: c == 'Time' ? 'time' : c,
+    data: eegData.map(v => parseFloat(v[c]))
+  }))
+
+
+const formatERPData = (eegData, eventData) => {
+  const erpTimeIdx = [...Array(128).keys()]
+
+  const template = { "Time": 0, "FPz": 0, "EOG1": 0, "F3": 0, "Fz": 0, "F4": 0, "EOG2": 0, "FC5": 0, "FC1": 0, "FC2": 0, "FC6": 0, "T7": 0, "C3": 0, "C4": 0, "Cz": 0, "T8": 0, "CP5": 0, "CP1": 0, "CP2": 0, "CP6": 0, "P7": 0, "P3": 0, "Pz": 0, "P4": 0, "P8": 0, "PO7": 0, "PO3": 0, "POz": 0, "PO4": 0, "PO8": 0, "O1": 0, "Oz": 0, "O2": 0 }
+
+  let erpObjectAcc = structuredClone(template)
+
+  const erpData =
+    erpTimeIdx
+      .map(erpTimeId =>
+        eventData
+          .filter(e => e.type == `square`)
+          .map(e => parseInt(e.latency))
+          .map(latencyId => eegData.slice(latencyId - 13, latencyId + 115))
+          .map(e => e.map((eegForErpEvent, i) => ({ 'index': i, data: eegForErpEvent })))
+          .flat()
+          .filter(i => i.index == erpTimeId)
+      )
+      .map(i => {
+        erpObjectAcc = structuredClone(template)
+
+        return i.reduce((accumulator, currentValue) => {
+          Object.entries(erpObjectAcc)
+            .forEach(e => accumulator[e[0]] = (parseFloat(accumulator[e[0]]) + parseFloat(currentValue.data[e[0]])) / 2)
+
+          return accumulator
+        }, erpObjectAcc)
+      }
+      )
+  return erpData
+}
 
 d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
-  d3.csv('data/events-all.csv').then(eventData => {
-    const erpTimeIdx = [...Array(128).keys()]
-
-    const template = {"Time":0,"FPz":0,"EOG1":0,"F3":0,"Fz":0,"F4":0,"EOG2":0,"FC5":0,"FC1":0,"FC2":0,"FC6":0,"T7":0,"C3":0,"C4":0,"Cz":0,"T8":0,"CP5":0,"CP1":0,"CP2":0,"CP6":0,"P7":0,"P3":0,"Pz":0,"P4":0,"P8":0,"PO7":0,"PO3":0,"POz":0,"PO4":0,"PO8":0,"O1":0,"Oz":0,"O2":0}
-
-    let erpObjectAcc = structuredClone(template)
-
-    const erpData = 
-      erpTimeIdx
-        .map(erpTimeId => 
-          eventData
-            .filter(e => e.type == `square`)
-            .map(e => parseInt(e.latency))
-            .map(latencyId => eegData.slice(latencyId-13,latencyId+115))
-            .map(e => e.map((eegForErpEvent, i) => ({'index': i, data: eegForErpEvent})))
-            .flat()
-            .filter(i => i.index == erpTimeId)
-          )
-        .map(i => {
-          erpObjectAcc = structuredClone(template)
-
-          return i.reduce((accumulator, currentValue) => { 
-              Object.entries(erpObjectAcc)
-                .forEach(e => accumulator[e[0]] = (parseFloat(accumulator[e[0]]) + parseFloat(currentValue.data[e[0]])) / 2)
-                
-              return accumulator
-            }, erpObjectAcc)}
-          )
+  d3.csv('data/events-all.csv').then(eventData => {   
     ChannelsChart(eegData, eventData)
-    d3.json("/data/eeg.json").then(data => {
-      PSDChart(data);
-      d3.json("/data/locations.json").then(locations =>
-        ScalpMapChart(data, locations)
-      );
-    })
+    
+    const eegDataPSDFormat = formatDataForPSD(eegData)
+    PSDChart(eegDataPSDFormat);
+    
+    d3.json("/data/locations.json").then(locations =>
+      ScalpMapChart(eegDataPSDFormat, locations)
+    );
+
   })
 )
