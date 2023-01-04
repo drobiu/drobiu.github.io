@@ -1,3 +1,7 @@
+var state = { 
+  svg: null,
+  liveUpdate: true
+}
 var data_dict = {};
 var color_dict = {
   'FPz': '#808080',
@@ -37,7 +41,6 @@ import RBF from './rbf.js';
 
 var legend_colors = ["#0400ff", "#00f7ff", "#00ff1a", "#fbff00", "#ff0000"];
 const samplingFrequency = 128
-var state = { svg: null }
 
 //Create legend rectangle as a linear gradient
 var legend = d3.select('#legend')
@@ -538,9 +541,10 @@ function addBrush(xScale, svg, width, height, margin) {
     if (selection === null) {
       console.log(`no selection`);
     } else {
-      console.log(selection.map(xScale.invert))
-      if (state.svg && event.type === 'end') {
-        update(selection.map(xScale.invert))
+      if(state.liveUpdate || (!state.live && event.type === 'end')) {
+        if (state.svg) {
+          update(selection.map(xScale.invert))
+        }
       }
     }
   }
@@ -815,6 +819,12 @@ const formatERPData = (eegData, eventData) => {
   return erpData
 }
 
+function toggleLiveUpdate() {
+  var checkBox = document.getElementById("liveUpdate");
+
+  state.liveUpdate = checkBox.checked == true ? true : false
+}
+
 d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
   d3.csv('data/events-all.csv').then(eventData => {   
     ChannelsChart(eegData, eventData)
@@ -828,3 +838,7 @@ d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
 
   })
 )
+
+window.onload = function() {
+  document.getElementById("liveUpdate").onclick = toggleLiveUpdate
+}
