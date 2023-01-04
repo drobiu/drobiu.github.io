@@ -613,6 +613,20 @@ const ChannelsChart = (data, eventData) => {
     const grouped = getGrouped(data)
     const extents = getExtents(data)
 
+    const time = d3.map(data, d => d.Time)
+
+    var sampler = fc.largestTriangleThreeBucket()
+        .x(function (d) { return d.time; })
+        .y(function (d) { return d.value; })
+        .bucketSize(10);
+
+
+    for (let [key, value] of grouped) {
+        grouped.set(key, sampler(value));
+    }
+
+    // Run the sampler
+
     state.eeg = {}
 
     // Dimensions:
