@@ -317,9 +317,14 @@ function interpolateRGB(value_arr, coord_arr) {
     .domain(domain.reverse())
     .range([0, 100]);
 
+  var ticks = scale.ticks();
+  ticks.push(-40, -50);
+
   var y_axis = d3.axisRight()
     .scale(scale)
-    .tickFormat(d3.format(",.0f"));
+    .tickFormat(d3.format(",.0f"))
+    .tickValues(ticks);
+  
 
   legend.select("g").call(y_axis).attr("font-family", "'Gill Sans MT', sans-serif");
   legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6");
@@ -401,18 +406,20 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
+
   if (range_vals === undefined) {
     range_vals = state.ranges;
   }
+
   state.ranges = range_vals;
   range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency));
   state.svg.selectAll("*:not(line)").remove();
+  
   var checked = [];
-
   for (var i = 1; i < state.value_names.length; i++) {
     var check = document.getElementById(state.value_names[i]);
     var electrode = state.electrodes.find(x => x.name === state.value_names[i]);
-    var id = "#cell" + electrode.x + "_" + electrode.y;
+    var id = "#cell" + electrode.x + "_" + electrode.y; //Used to update the state of the electrodes
     if (check.checked) {
       checked.push(state.value_names[i]);
       d3.select(id).style("fill", "white");
@@ -434,6 +441,7 @@ function update(range_vals) {
       ranged_data.push(curr);
       sum = sum + curr;
     }
+    //Update electrode amplitudes based on the average of the brushed selection for each one
     state.electrodes.find(x => x.name === checked[i]).z = sum / ranged_data.length
 	try {
 		var psd = bci.welch(ranged_data, state.f);
@@ -451,6 +459,7 @@ function update(range_vals) {
   }
 
   addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
+  //Update the scalpmap interpolation
   update_z(state.electrodes);
 }
 
@@ -497,7 +506,7 @@ function plot(xs, ys, svg, line_id) {
   //Container for the gradients
   var defs = svg.append("defs");
 
-  //Filter for the outside glow
+  //Filter for the outside glow effect line highlights
   var filter = defs.append("filter")
     .attr("id","glow");
   filter.append("feGaussianBlur")
@@ -509,7 +518,7 @@ function plot(xs, ys, svg, line_id) {
   feMerge.append("feMergeNode")
     .attr("in","SourceGraphic");
 
-  // Add the line
+  // Add the plot lines
   svg.append("path")
     .datum(data)
     .attr("id", line_id+"_line")
@@ -520,14 +529,14 @@ function plot(xs, ys, svg, line_id) {
       .x(d => x(d.t))
       .y(d => y(d.d))
     ).on("mouseenter", function() {
-      d3.select(this).style("filter", "url(#glow)")
+      d3.select(this).style("filter", "url(#glow)") //Add the glow effect on line hover
         .attr("stroke-width", 3);
-      d3.select("#circle_"+line_id).attr("r", 10);
+      d3.select("#circle_"+line_id).attr("r", 10); //Show the respective electrode on the scalpmap
     })
     .on("mouseleave", function () {
-      d3.select(this).style("filter", null)
+      d3.select(this).style("filter", null) //Remove the glow effect on mouse leave
       .attr("stroke-width", 0.5);
-      d3.select("#circle_"+line_id).attr("r", 0);
+      d3.select("#circle_"+line_id).attr("r", 0); //Hide the electrode mark on mouse leave
     })
 
   return [x, y];
@@ -615,13 +624,7 @@ function pointermoved(event) {
   })
 
   state.z = z;
-
-  // debug for now
-  // state.legend.innerHTML = rounded + ":" + Object.entries(data);
-
   state.psd_info = data;
-
-  // update_z(state.scalp_xy, state.z);
 
   state.line
     .attr("x1", state.psd_x(rounded))
