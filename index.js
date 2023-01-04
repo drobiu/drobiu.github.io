@@ -168,6 +168,7 @@ function ScalpMapChart(data, locations) {
                 checkbox.checked = !checkbox.checked;
                 d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "white" : "black");
                 update(state.ranges);
+                updateEEG(electrodes.filter(d => d.checked).map(d => d.name));
                 var id = loc[i].label;
                 var msg = "";
                 if (checkbox.checked) {
@@ -606,11 +607,13 @@ const getGrouped = data => new Map(data.columns
 const getExtents = data => d3.extent(data.columns
     .filter(c => c !== 'Time')
     .map(c => [c,
-        data.map(v => v[c])]).flatMap(e => d3.extent(e[1].map(d => parseFloat(d)))))
+        data.map(v => v[c])]).flatMap(e => d3.extent(e[1].map(d => parseFloat(d) / 5))))
 
 const ChannelsChart = (data, eventData) => {
     const grouped = getGrouped(data)
     const extents = getExtents(data)
+
+    state.eeg = {}
 
     // Dimensions:
     const height = 800;
@@ -633,6 +636,10 @@ const ChannelsChart = (data, eventData) => {
     const padding = 0;
     const doublePadding = padding * 2;
 
+    state.eeg.height = height;
+    state.eeg.padding = padding;
+    state.eeg.margin = margin;
+
     const plotHeight = (height - doublePadding) / grouped.size - padding;
     const plotWidth = width - padding * 2;
 
@@ -643,17 +650,18 @@ const ChannelsChart = (data, eventData) => {
     const xScale = d3.scaleLinear()
         .domain(d3.extent(data, d => d.Time))
         .range([0, plotWidth + margin.right]);
-
+    state.xScale = xScale;
     // const y_extent = d3.extent(data, d => d["Cz"])[1]
 
     // Extent is now the max extent of all signals
     const yScale = d3.scaleLinear()
         .domain(extents)
         .range([plotHeight, 0]);
+    state.yScale = yScale;
 
     const svg = d3.select("#chart1")
         .append("svg")
-        .attr("width", margin.left + width + + margin.right)
+        .attr("width", margin.left + width + margin.right)
         .attr("height", margin.top + height + margin.bottom + (padding * grouped.size));
 
     // Plot events
@@ -706,12 +714,6 @@ const ChannelsChart = (data, eventData) => {
     // .attr("text-anchor","middle");
 
     // Plot axes 
-    // Axes below individual plots    
-    //   plots.append("g")
-    //   .attr("transform", "translate(" + [0, plotHeight] + ")")
-    //   .call(d3.axisBottom(xScale)
-    //   .tickFormat("")
-    //   );
 
     // Lower x axis
     svg.append("g")
@@ -721,25 +723,52 @@ const ChannelsChart = (data, eventData) => {
         ).attr("font-family", "'Gill Sans MT', sans-serif");
 
     // y axis
-    // plots.append("g")
-    //     .attr("transform", "translate(" + [-padding, 0] + ")")
-    //     .call(d3.axisLeft(yScale).tickFormat((d, i) => console.log(d, i)))
-    //     .attr("font-family", "'Gill Sans MT', sans-serif");
-
-    //     console.log(plots)
 
     const activeNames = d3.map(plots.data(), d => d[0])
 
-    plots.each((d, i) => svg.append("g")
+    plots.each((d, i) => svg.append("g").attr('class', `yaxis`)
         .attr("transform", "translate(" + [margin.left, i * plotHeight + margin.top] + ")")
         .call(d3.axisLeft(yScale)
             .ticks(1).tickFormat(activeNames[i])
         ).attr("font-family", "'Gill Sans MT', sans-serif"));
 
     // BRUSHY BRUSHY
-    addBrush(xScale, svg, width, height, margin)
+    addBrush(xScale, svg, width, height, margin);
+
+    state.plots = plots;
+    state.eeg.svg = svg;
 
     return svg.node()
+}
+
+function updateEEG(active) {
+    const plotHeight = (state.eeg.height - state.eeg.padding * 2) / active.length - state.eeg.padding;
+
+    state.yScale.range([plotHeight, 0]);
+
+    state.eeg.svg.selectAll(".yaxis").remove();
+
+    active.forEach((n, i) => state.eeg.svg.append("g").attr('class', `yaxis`)
+        .attr("transform", "translate(" + [state.eeg.margin.left, i * plotHeight + state.eeg.margin.top] + ")")
+        .call(d3.axisLeft(state.yScale)
+            .ticks(1).tickFormat(n)
+        ).attr("font-family", "'Gill Sans MT', sans-serif"));
+
+    state.plots.selectAll("path").filter(c => !active.includes(c[0])).attr('d', '')
+
+    // Update chart
+    state.plots.selectAll("path").filter(c => active.includes(c[0]))
+        .attr("d", function (d) {
+            return d3.line()
+                .x(d => state.xScale(d.time))
+                .y(d => state.yScale(d.value))
+                (d[1])
+        })
+
+    state.plots.filter(c => active.includes(c[0]))
+        .attr("transform", function (d, i) {
+            return "translate(" + [state.eeg.padding, i * (state.eeg.padding * 2 + plotHeight) + state.eeg.padding] + ")";
+        })
 }
 
 
@@ -773,6 +802,8 @@ d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
                     }, erpObjectAcc)
                 }
                 )
+        state.eegData = eegData;
+        state.eventData = eventData;
         ChannelsChart(eegData, eventData)
         d3.json("/data/eeg.json").then(data => {
             PSDChart(data);
