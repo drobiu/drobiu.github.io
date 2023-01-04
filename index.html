@@ -20,7 +20,9 @@
             <tbody>
               <tr>
                 <td><div id="chart2"></div></td>
-                <td id="grid"></td>
+                <td id="grid">
+                  <div id="scalpmap_title">Scalpmap</div>
+                </td>
                 <td id="legend"></td>
               </tr>
             </tbody>
@@ -29,10 +31,12 @@
 
     
     <script type='module' src="index.js"></script>  
-    Live update (disabling improves performance): 
-    <input type="checkbox" id="liveUpdate" 
+    <label for="liveUpdate" id="liveUpdate">Live update (disabling improves performance): 
+      <input type="checkbox" id="liveUpdate" 
       onclick="toggleLiveUpdate()"
       checked="true">
+    </label>
+    
     <fieldset id="selector">
         <legend>Choose features:</legend>
     </fieldset> 

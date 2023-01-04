@@ -475,7 +475,7 @@ function addScale(x, y, svg, title) {
     .attr("x", (state.width / 2))
     .attr("y", 0)
     .attr("text-anchor", "middle")
-    .style("font-size", "16px")
+    .style("font-size", "20px")
     .attr("font-family", "'Gill Sans MT', sans-serif")
     .text(title);
 }
