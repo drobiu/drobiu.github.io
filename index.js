@@ -310,10 +310,10 @@ function PSDChart(data) {
         .append("svg")
         .attr("width", state.width + margin.left + margin.right)
         .attr("height", state.height + margin.top + margin.bottom)
-        .on("pointerenter", pointerentered)
-        .on("pointerleave", pointerleft)
-        .on("pointermove", (event) => { state.psd_clicked ? null : pointermoved(event) })
-        .on("click", clicked)
+        // .on("pointerenter", pointerentered)
+        // .on("pointerleave", pointerleft)
+        // .on("pointermove", (event) => { state.psd_clicked ? null : pointermoved(event) })
+        // .on("click", clicked)
         .append("g")
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
@@ -321,14 +321,14 @@ function PSDChart(data) {
     state.legend = document.createElement('div');
     document.getElementById("chart2").appendChild(state.legend);
 
-    state.line = svg.append("line")
-        .attr("x1", 10)
-        .attr("y1", 5)
-        .attr("x2", 10)
-        .attr("y2", state.height)
-        .style("stroke-width", 2)
-        .style("stroke", "red")
-        .style("fill", "none");
+    // state.line = svg.append("line")
+    //     .attr("x1", 10)
+    //     .attr("y1", 5)
+    //     .attr("x2", 10)
+    //     .attr("y2", state.height)
+    //     .style("stroke-width", 2)
+    //     .style("stroke", "red")
+    //     .style("fill", "none");
 
     state.svg = svg
 
@@ -546,58 +546,58 @@ function addBrush(xScale, svg, width, height, margin) {
 
 }
 
-function pointerentered() {
-    state.line.style("stroke", "red");
-}
+// function pointerentered() {
+//     state.line.style("stroke", "red");
+// }
 
-function pointerleft() {
-    if (!state.psd_clicked)
-        state.line.style("stroke", "none");
-}
+// function pointerleft() {
+//     if (!state.psd_clicked)
+//         state.line.style("stroke", "none");
+// }
 
-function pointermoved(event) {
-    const [xm, ym] = d3.pointer(event)
-    const psd_dx = state.psd_xs[1]
-    var x_in_psd_domain = Math.max(0, state.psd_inv_x(xm - state.margin.left));
-    var rounded = (Math.round(x_in_psd_domain * (1 / psd_dx)) * psd_dx);
+// function pointermoved(event) {
+//     const [xm, ym] = d3.pointer(event)
+//     const psd_dx = state.psd_xs[1]
+//     var x_in_psd_domain = Math.max(0, state.psd_inv_x(xm - state.margin.left));
+//     var rounded = (Math.round(x_in_psd_domain * (1 / psd_dx)) * psd_dx);
 
-    var data = {};
+//     var data = {};
 
-    Object.entries(state.psds).forEach(entry => {
-        const [key, value] = entry;
-        data[key] = value.estimates[parseInt(rounded / psd_dx)];
-    })
+//     Object.entries(state.psds).forEach(entry => {
+//         const [key, value] = entry;
+//         data[key] = value.estimates[parseInt(rounded / psd_dx)];
+//     })
 
-    var z = [];
+//     var z = [];
 
-    state.value_names.slice(1).forEach((name) => {
-        if (Object.keys(data).includes(name)) {
-            var current_z = state.psds[name].estimates[parseInt(rounded / psd_dx)]
-            z.push(current_z);
-        } else {
-            z.push(0);
-        }
-    })
+//     state.value_names.slice(1).forEach((name) => {
+//         if (Object.keys(data).includes(name)) {
+//             var current_z = state.psds[name].estimates[parseInt(rounded / psd_dx)]
+//             z.push(current_z);
+//         } else {
+//             z.push(0);
+//         }
+//     })
 
-    state.z = z;
+//     state.z = z;
 
-    // debug for now
-    // state.legend.innerHTML = rounded + ":" + Object.entries(data);
+//     // debug for now
+//     // state.legend.innerHTML = rounded + ":" + Object.entries(data);
 
-    state.psd_info = data;
+//     state.psd_info = data;
 
-    // update_z(state.scalp_xy, state.z);
+//     // update_z(state.scalp_xy, state.z);
 
-    state.line
-        .attr("x1", state.psd_x(rounded))
-        .attr("x2", state.psd_x(rounded));
-}
+//     state.line
+//         .attr("x1", state.psd_x(rounded))
+//         .attr("x2", state.psd_x(rounded));
+// }
 
-function clicked() {
-    state.psd_clicked = !state.psd_clicked;
-    if (state.psd_clicked)
-        update_z(state.electrodes);
-}
+// function clicked() {
+//     state.psd_clicked = !state.psd_clicked;
+//     if (state.psd_clicked)
+//         update_z(state.electrodes);
+// }
 
 const getGrouped = data => new Map(data.columns
     .filter(c => c !== 'Time')
