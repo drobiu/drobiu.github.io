@@ -72,6 +72,13 @@ legend.append('rect')
     .attr('height', 340)
     .style('fill', 'url(#grad)');
 
+legend.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 100)
+    .attr("x", -250)
+    .attr("font-family", "'Gill Sans MT', sans-serif")
+    .text("Average amplitude value");
+
 legend.append("g")
     .attr("transform", "translate(50, 10)")
     .attr("height", 340);
@@ -200,11 +207,13 @@ function ScalpMapChart(data, locations) {
                 checkbox.checked = !checkbox.checked;
                 d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "white" : "black");
                 update(state.ranges);
-                //updateEEG(electrodes.filter(d => d.checked).map(d => d.name));
+                updateEEG(electrodes.filter(d => d.checked).map(d => d.name));
                 var id = loc[i].label;
                 var msg = "";
                 if (checkbox.checked) {
                     msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
+                    state.svg.selectChild("#" + id + "_line").style("filter", "url(#glow)")
+                    .attr("stroke-width", 3);
                 } else {
                     msg = id;
                 }
@@ -408,7 +417,6 @@ function update(range_vals) {
     if (range_vals === undefined) {
         range_vals = state.ranges;
     }
-
     state.ranges = range_vals;
     range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency));
     state.svg.selectAll("*:not(line)").remove();
@@ -426,33 +434,31 @@ function update(range_vals) {
             d3.select(id).style("fill", "black");
             state.electrodes.find(x => x.name === state.value_names[i]).checked = false;
         }
-
-        state.psds = {};
-
-        var xy = [];
-        for (var i = 0; i < checked.length; i++) {
-            var ranged_data = []
-            var sum = 0;
-            for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
-                var curr = parseFloat(data_dict[checked[i]][j]);
-                ranged_data.push(curr);
-                sum = sum + curr;
-            }
-            //Update electrode amplitudes based on the average of the brushed selection for each one
-            state.electrodes.find(x => x.name === checked[i]).z = sum / ranged_data.length
-            try {
-                var psd = bci.welch(ranged_data, state.f);
-                state.psds[checked[i]] = psd;
-                state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
-                xy = plot(psd.frequencies, psd.estimates, state.svg, checked[i]);
-            } catch (error) {
-                state.svg.append("text")
-                    .attr("y", state.height / 2)
-                    .attr("x", state.width / 2)
-                    .text("Could not compute PSD estimates. Select a larger portion of data.")
-                    .attr("font-family", "'Gill Sans MT', sans-serif")
-                    .style("text-anchor", "middle");
-            }
+    }
+    state.psds = {};
+    var xy = [];
+    for (var i = 0; i < checked.length; i++) {
+        var ranged_data = []
+        var sum = 0;
+        for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
+            var curr = parseFloat(data_dict[checked[i]][j]);
+            ranged_data.push(curr);
+            sum = sum + curr;
+        }
+        //Update electrode amplitudes based on the average of the brushed selection for each one
+        state.electrodes.find(x => x.name === checked[i]).z = sum / ranged_data.length
+        try {
+            var psd = bci.welch(ranged_data, state.f);
+            state.psds[checked[i]] = psd;
+            state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
+            xy = plot(psd.frequencies, psd.estimates, state.svg, checked[i]);
+        } catch (error) {
+            state.svg.append("text")
+                .attr("y", state.height / 2)
+                .attr("x", state.width / 2)
+                .text("Could not compute PSD estimates. Select a larger portion of data.")
+                .attr("font-family", "'Gill Sans MT', sans-serif")
+                .style("text-anchor", "middle");
         }
     }
 
@@ -464,7 +470,22 @@ function update(range_vals) {
 function addScale(x, y, svg, title) {
     svg.append("g")
         .attr("transform", "translate(0," + state.height + ")")
-        .call(d3.axisBottom(x)).attr("font-family", "'Gill Sans MT', sans-serif");
+        .call(d3.axisBottom(x)).attr("font-family", "'Gill Sans MT', sans-serif")
+    
+    //y-axis label
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -30)
+        .attr("x", -state.height / 2)
+        .attr("font-family", "'Gill Sans MT', sans-serif")
+        .text("dB");
+
+    //x-axis label
+    svg.append("text")
+        .attr("y", state.height + 30)
+        .attr("x", state.width / 2)
+        .attr("font-family", "'Gill Sans MT', sans-serif")
+        .text("Hz");
 
     svg.append("g")
         .call(d3.axisLeft(y)).attr("font-family", "'Gill Sans MT', sans-serif");
@@ -679,7 +700,7 @@ const ChannelsChart = (data, eventData) => {
     // TODO: we'll need the left one at least, for
     // the y axis
     const margin = {
-        top: 10,
+        top: 60,
         left: 50,
         right: 50,
         bottom: 50
@@ -721,6 +742,28 @@ const ChannelsChart = (data, eventData) => {
         .append("svg")
         .attr("width", margin.left + width + margin.right)
         .attr("height", margin.top + height + margin.bottom + (padding * grouped.size));
+    
+    //y-axis label
+    svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 10)
+    .attr("x", -height/2 - 100)
+    .attr("font-family", "'Gill Sans MT', sans-serif")
+    .text("Electrode Labels");
+
+    //x-axis label
+    svg.append("text")
+    .attr("y", height + 100)
+    .attr("x", width/2)
+    .attr("font-family", "'Gill Sans MT', sans-serif")
+    .text("Time(ms)");
+
+    //Title
+    svg.append("text")
+    .attr("y", 50)
+    .attr("x", width/2)
+    .attr("font-family", "'Gill Sans MT', sans-serif")
+    .text("EEG plots per electrode");
 
     // Plot events
     eventData.forEach(r => {
@@ -811,7 +854,8 @@ function updateEEG(active) {
         .attr("transform", "translate(" + [state.eeg.margin.left, i * plotHeight + state.eeg.margin.top] + ")")
         .call(d3.axisLeft(state.yScale)
             .ticks(1).tickFormat(n)
-        ).attr("font-family", "'Gill Sans MT', sans-serif"));
+        ).attr("font-family", "'Gill Sans MT', sans-serif")
+        .selectAll("text").style("stroke", color_dict[n]));
 
     state.plots.selectAll("path").filter(c => !active.includes(c[0])).attr('d', '')
 
