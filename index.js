@@ -1,13 +1,46 @@
+var state = {
+    svg: null,
+    liveUpdate: true
+}
 var data_dict = {};
+var color_dict = {
+    'FPz': '#808080',
+    'F3': '#2e8b57',
+    'Fz': '#7f0000',
+    'F4': '#808000',
+    'FC5': '#483d8b',
+    'FC1': '#008000',
+    'FC2': '#008080',
+    'FC6': '#4682b4',
+    'T7': '#d2691e',
+    'C3': '#00008b',
+    'Cz': '#32cd32',
+    'C4': '#daa520',
+    'T8': '#800080',
+    'CP5': '#b03060',
+    'CP1': '#d2b48c',
+    'CP2': '#ff0000',
+    'CP6': '#00ff00',
+    'P7': '#9400d3',
+    'P3': '#00fa9a',
+    'Pz': '#dc143c',
+    'P4': '#00ffff',
+    'P8': '#0000ff',
+    'PO7': '#adff2f',
+    'PO3': '#da70d6',
+    'POz': '#d8bfd8',
+    'PO4': '#ff00ff',
+    'PO8': '#1e90ff',
+    'O1': '#fa8072',
+    'Oz': '#ffff54',
+    'O2': '#87ceeb',
+    'EOG1': '#ff1493',
+    'EOG2': '#7b68ee',
+};
 import RBF from './rbf.js';
-
-var slider = document.getElementById("time_slider");
-var time_label = document.getElementById("time_label");
-
 
 var legend_colors = ["#0400ff", "#00f7ff", "#00ff1a", "#fbff00", "#ff0000"];
 const samplingFrequency = 128
-var state = { svg: null }
 
 //Create legend rectangle as a linear gradient
 var legend = d3.select('#legend')
@@ -57,7 +90,6 @@ function showTooltip(label, event) {
         .style("border-radius", "5px")
         .style("padding", "10px 10px 10px 10px")
         .style("color", "white")
-
 }
 
 function ScalpMapChart(data, locations) {
@@ -168,7 +200,7 @@ function ScalpMapChart(data, locations) {
                 checkbox.checked = !checkbox.checked;
                 d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "white" : "black");
                 update(state.ranges);
-                updateEEG(electrodes.filter(d => d.checked).map(d => d.name));
+                //updateEEG(electrodes.filter(d => d.checked).map(d => d.name));
                 var id = loc[i].label;
                 var msg = "";
                 if (checkbox.checked) {
@@ -279,15 +311,18 @@ function interpolateRGB(value_arr, coord_arr) {
         let id = "#cell" + coord_arr[i][0] + "_" + coord_arr[i][1];
         d3.selectAll(id).attr("fill", getColor(value_arr[i]));
     }
-
     //Update legend values according to the input amplitude values
     var scale = d3.scaleLinear()
         .domain(domain.reverse())
         .range([0, 100]);
 
+    var ticks = scale.ticks();
+    ticks.push(-40, -50);
+
     var y_axis = d3.axisRight()
         .scale(scale)
-        .tickFormat(d3.format(",.0f"));
+        .tickFormat(d3.format(",.0f"))
+        .tickValues(ticks);
 
     legend.select("g").call(y_axis).attr("font-family", "'Gill Sans MT', sans-serif");
     legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6");
@@ -369,18 +404,20 @@ function PSDChart(data) {
 }
 
 function update(range_vals) {
+
     if (range_vals === undefined) {
         range_vals = state.ranges;
     }
+
     state.ranges = range_vals;
     range_vals = range_vals.map(r => parseInt((r / 1000) * samplingFrequency));
     state.svg.selectAll("*:not(line)").remove();
-    var checked = [];
 
+    var checked = [];
     for (var i = 1; i < state.value_names.length; i++) {
         var check = document.getElementById(state.value_names[i]);
         var electrode = state.electrodes.find(x => x.name === state.value_names[i]);
-        var id = "#cell" + electrode.x + "_" + electrode.y;
+        var id = "#cell" + electrode.x + "_" + electrode.y; //Used to update the state of the electrodes
         if (check.checked) {
             checked.push(state.value_names[i]);
             d3.select(id).style("fill", "white");
@@ -389,35 +426,38 @@ function update(range_vals) {
             d3.select(id).style("fill", "black");
             state.electrodes.find(x => x.name === state.value_names[i]).checked = false;
         }
+
+        state.psds = {};
+
+        var xy = [];
+        for (var i = 0; i < checked.length; i++) {
+            var ranged_data = []
+            var sum = 0;
+            for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
+                var curr = parseFloat(data_dict[checked[i]][j]);
+                ranged_data.push(curr);
+                sum = sum + curr;
+            }
+            //Update electrode amplitudes based on the average of the brushed selection for each one
+            state.electrodes.find(x => x.name === checked[i]).z = sum / ranged_data.length
+            try {
+                var psd = bci.welch(ranged_data, state.f);
+                state.psds[checked[i]] = psd;
+                state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
+                xy = plot(psd.frequencies, psd.estimates, state.svg, checked[i]);
+            } catch (error) {
+                state.svg.append("text")
+                    .attr("y", state.height / 2)
+                    .attr("x", state.width / 2)
+                    .text("Could not compute PSD estimates. Select a larger portion of data.")
+                    .attr("font-family", "'Gill Sans MT', sans-serif")
+                    .style("text-anchor", "middle");
+            }
+        }
     }
 
-    state.psds = {};
-
-    var xy = [];
-    for (var i = 0; i < checked.length; i++) {
-        var ranged_data = []
-        var sum = 0;
-        for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
-            var curr = parseFloat(data_dict[checked[i]][j]);
-            ranged_data.push(curr);
-            sum = sum + curr;
-        }
-        state.electrodes.find(x => x.name === checked[i]).z = sum / ranged_data.length
-        try {
-            var psd = bci.welch(ranged_data, state.f);
-            state.psds[checked[i]] = psd;
-            state.maxval = Math.max(state.maxval, d3.max(psd.estimates));
-            xy = plot(psd.frequencies, psd.estimates, state.svg, checked[i]);
-        } catch (error) {
-            state.svg.append("text")
-                .attr("y", state.height / 2)
-                .attr("x", state.width / 2)
-                .text("Could not compute PSD estimates. Select a larger portion of data.")
-                .style("text-anchor", "middle");
-        }
-    }
-    //console.log(ranged_data);
     addScale(xy[0], xy[1], state.svg, 'Power spectral densities');
+    //Update the scalpmap interpolation
     update_z(state.electrodes);
 }
 
@@ -433,7 +473,8 @@ function addScale(x, y, svg, title) {
         .attr("x", (state.width / 2))
         .attr("y", 0)
         .attr("text-anchor", "middle")
-        .style("font-size", "16px")
+        .style("font-size", "20px")
+        .attr("font-family", "'Gill Sans MT', sans-serif")
         .text(title);
 }
 
@@ -463,7 +504,7 @@ function plot(xs, ys, svg, line_id) {
     //Container for the gradients
     var defs = svg.append("defs");
 
-    //Filter for the outside glow
+    //Filter for the outside glow effect line highlights
     var filter = defs.append("filter")
         .attr("id", "glow");
     filter.append("feGaussianBlur")
@@ -475,25 +516,25 @@ function plot(xs, ys, svg, line_id) {
     feMerge.append("feMergeNode")
         .attr("in", "SourceGraphic");
 
-    // Add the line
+    // Add the plot lines
     svg.append("path")
         .datum(data)
         .attr("id", line_id + "_line")
         .attr("fill", "none")
-        .attr("stroke", "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")")
+        .attr("stroke", color_dict[line_id])
         .attr("stroke-width", 0.5)
         .attr("d", d3.line()
             .x(d => x(d.t))
             .y(d => y(d.d))
         ).on("mouseenter", function () {
-            d3.select(this).style("filter", "url(#glow)")
+            d3.select(this).style("filter", "url(#glow)") //Add the glow effect on line hover
                 .attr("stroke-width", 3);
-            d3.select("#circle_" + line_id).attr("r", 10);
+            d3.select("#circle_" + line_id).attr("r", 10); //Show the respective electrode on the scalpmap
         })
         .on("mouseleave", function () {
-            d3.select(this).style("filter", null)
+            d3.select(this).style("filter", null) //Remove the glow effect on mouse leave
                 .attr("stroke-width", 0.5);
-            d3.select("#circle_" + line_id).attr("r", 0);
+            d3.select("#circle_" + line_id).attr("r", 0); //Hide the electrode mark on mouse leave
         })
 
     return [x, y];
@@ -510,9 +551,11 @@ function addBrush(xScale, svg, width, height, margin) {
             console.log(`no selection`);
         } else {
             var selectionRange = selection.map(xScale.invert).map(d => parseFloat(d) - brush_size);
-            console.log(selectionRange)
-            if (state.svg)
-                update(selectionRange)
+            if (state.liveUpdate || (!state.live && event.type === 'end')) {
+                if (state.svg) {
+                    update(selectionRange)
+                }
+            }
         }
     }
 
@@ -745,7 +788,8 @@ const ChannelsChart = (data, eventData) => {
         .attr("transform", "translate(" + [margin.left, i * plotHeight + margin.top] + ")")
         .call(d3.axisLeft(yScale)
             .ticks(1).tickFormat(activeNames[i])
-        ).attr("font-family", "'Gill Sans MT', sans-serif"));
+        ).attr("font-family", "'Gill Sans MT', sans-serif")
+        .selectAll("text").style("stroke", color_dict[activeNames[i]]));
 
     // BRUSHY BRUSHY
     addBrush(xScale, svg, width, height, margin);
@@ -786,45 +830,67 @@ function updateEEG(active) {
         })
 }
 
+function toggleLiveUpdate() {
+    var checkBox = document.getElementById("liveUpdate");
+
+    state.liveUpdate = checkBox.checked == true ? true : false
+}
+
+const formatDataForPSD = (eegData) => eegData.columns
+    .map(c => ({
+        name: c == 'Time' ? 'time' : c,
+        data: eegData.map(v => parseFloat(v[c]))
+    }))
+
+
+const formatERPData = (eegData, eventData) => {
+    const erpTimeIdx = [...Array(128).keys()]
+
+    const template = { "Time": 0, "FPz": 0, "EOG1": 0, "F3": 0, "Fz": 0, "F4": 0, "EOG2": 0, "FC5": 0, "FC1": 0, "FC2": 0, "FC6": 0, "T7": 0, "C3": 0, "C4": 0, "Cz": 0, "T8": 0, "CP5": 0, "CP1": 0, "CP2": 0, "CP6": 0, "P7": 0, "P3": 0, "Pz": 0, "P4": 0, "P8": 0, "PO7": 0, "PO3": 0, "POz": 0, "PO4": 0, "PO8": 0, "O1": 0, "Oz": 0, "O2": 0 }
+
+    let erpObjectAcc = structuredClone(template)
+
+    const erpData =
+        erpTimeIdx
+            .map(erpTimeId =>
+                eventData
+                    .filter(e => e.type == `square`)
+                    .map(e => parseInt(e.latency))
+                    .map(latencyId => eegData.slice(latencyId - 13, latencyId + 115))
+                    .map(e => e.map((eegForErpEvent, i) => ({ 'index': i, data: eegForErpEvent })))
+                    .flat()
+                    .filter(i => i.index == erpTimeId)
+            )
+            .map(i => {
+                erpObjectAcc = structuredClone(template)
+
+                return i.reduce((accumulator, currentValue) => {
+                    Object.entries(erpObjectAcc)
+                        .forEach(e => accumulator[e[0]] = (parseFloat(accumulator[e[0]]) + parseFloat(currentValue.data[e[0]])) / 2)
+
+                    return accumulator
+                }, erpObjectAcc)
+            }
+            )
+    return erpData
+}
+
 
 d3.csv("/data/eeg-lab-example-yes-transpose-all.csv").then(eegData =>
     d3.csv('data/events-all.csv').then(eventData => {
-        const erpTimeIdx = [...Array(128).keys()]
-
-        const template = { "Time": 0, "FPz": 0, "EOG1": 0, "F3": 0, "Fz": 0, "F4": 0, "EOG2": 0, "FC5": 0, "FC1": 0, "FC2": 0, "FC6": 0, "T7": 0, "C3": 0, "C4": 0, "Cz": 0, "T8": 0, "CP5": 0, "CP1": 0, "CP2": 0, "CP6": 0, "P7": 0, "P3": 0, "Pz": 0, "P4": 0, "P8": 0, "PO7": 0, "PO3": 0, "POz": 0, "PO4": 0, "PO8": 0, "O1": 0, "Oz": 0, "O2": 0 }
-
-        let erpObjectAcc = structuredClone(template)
-
-        const erpData =
-            erpTimeIdx
-                .map(erpTimeId =>
-                    eventData
-                        .filter(e => e.type == `square`)
-                        .map(e => parseInt(e.latency))
-                        .map(latencyId => eegData.slice(latencyId - 13, latencyId + 115))
-                        .map(e => e.map((eegForErpEvent, i) => ({ 'index': i, data: eegForErpEvent })))
-                        .flat()
-                        .filter(i => i.index == erpTimeId)
-                )
-                .map(i => {
-                    erpObjectAcc = structuredClone(template)
-
-                    return i.reduce((accumulator, currentValue) => {
-                        Object.entries(erpObjectAcc)
-                            .forEach(e => accumulator[e[0]] = (parseFloat(accumulator[e[0]]) + parseFloat(currentValue.data[e[0]])) / 2)
-
-                        return accumulator
-                    }, erpObjectAcc)
-                }
-                )
-        state.eegData = eegData;
-        state.eventData = eventData;
         ChannelsChart(eegData, eventData)
-        d3.json("/data/eeg.json").then(data => {
-            PSDChart(data);
-            d3.json("/data/locations.json").then(locations =>
-                ScalpMapChart(data, locations)
-            );
-        })
+
+        const eegDataPSDFormat = formatDataForPSD(eegData)
+        PSDChart(eegDataPSDFormat);
+
+        d3.json("/data/locations.json").then(locations =>
+            ScalpMapChart(eegDataPSDFormat, locations)
+        );
+
     })
 )
+
+
+window.onload = function () {
+    document.getElementById("liveUpdate").onclick = toggleLiveUpdate
+}
