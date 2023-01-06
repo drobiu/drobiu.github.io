@@ -746,10 +746,10 @@ const ChannelsChart = (data, eventData) => {
     //y-axis label
     svg.append("text")
     .attr("transform", "rotate(-90)")
-    .attr("y", 10)
+    .attr("y", 15)
     .attr("x", -height/2 - 100)
-    .attr("font-family", "'Gill Sans MT', sans-serif")
-    .text("Electrode Labels");
+    .text("Electrode Labels")
+    .attr("font-family", "'Gill Sans MT', sans-serif");
 
     //x-axis label
     svg.append("text")
