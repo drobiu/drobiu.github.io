@@ -1,6 +1,6 @@
 import RBF from './rbf.js';
 
-var state = {
+var state = { // Object storing the state of the charts and several properties
     svg: null,
     liveUpdate: true
 }
@@ -40,6 +40,7 @@ var color_dict = { // Object storing predefined colors for each signal
     'EOG2': '#7b68ee',
 };
 
+// Colors for the rectangle legend [blue, light_blue, green, yellow, red]
 var legend_colors = ["#0400ff", "#00f7ff", "#00ff1a", "#fbff00", "#ff0000"];
 const samplingFrequency = 128
 
@@ -73,6 +74,7 @@ legend.append('rect')
     .attr('height', 340)
     .style('fill', 'url(#grad)');
 
+// Legend axis title
 legend.append("text")
     .attr("transform", "rotate(-90)")
     .attr("y", 100)
@@ -84,6 +86,7 @@ legend.append("g")
     .attr("transform", "translate(50, 10)")
     .attr("height", 340);
 
+// Initialize tooltip that shows on electrode hover
 var tooltip = d3.select("body")
     .append("div")
     .attr("id", "tooltip")
@@ -100,8 +103,12 @@ function showTooltip(label, event) {
         .style("color", "white")
 }
 
+// Function that builds the scalp map part of our visulization
+// data: The eeg data containing the values for each electrode at each time step
+// locations: The x,y coordinates of each of the electrodes and their labels
 function ScalpMapChart(data, locations) {
-    // Initialize the Scalp map chart with the max and min values
+    // Find the min and max values of the entire dataset
+    // used for the interpolation range and legend axis
     var dataset_max = -Number.MAX_VALUE;
     var dataset_min = Number.MAX_VALUE;
     for (let i = 0; i < data.length; i++) {
@@ -118,6 +125,7 @@ function ScalpMapChart(data, locations) {
         }
     }
 
+    // Store min/max values in state object
     state.dataset_max = dataset_max;
     state.dataset_min = dataset_min;
 
@@ -169,10 +177,15 @@ function ScalpMapChart(data, locations) {
         .attr("stroke", "white")
         .attr("stroke-width", 4);
 
-
+    // Array to contain all the electrodes
+    // Stores their label, (x,y) coordinates, amplitude (z) values and 
+    // a boolean if the electrode is selected
     var electrodes = [];
+
+    // Store the electrodes in the state
     state.electrodes = electrodes;
 
+    // Locations of the electrodes from the .json file
     var loc = locations;
     var circles = [];
     const mult = 4;
@@ -187,9 +200,10 @@ function ScalpMapChart(data, locations) {
             "z": data.find(x => x.name === loc[i].label).data[0],
             "checked": true,
         })
-
+        
+        // Label rectangles as #cellX_Y (X,Y coordinates on scalp)
         let id = "#cell" + loc[i].x + "_" + loc[i].y;
-        d3.selectAll(id).style("fill", "black"); //Arbitrary color to distinguish the electrodes
+        d3.selectAll(id).style("fill", "black"); //White: enabled, Blacl: disabled
 
         // Add circles in electrode locations
         var circle = grid.append("circle")
@@ -206,10 +220,11 @@ function ScalpMapChart(data, locations) {
                 checkbox.checked = !checkbox.checked;
                 d3.select("#circle_" + loc[i].label).attr("fill", checkbox.checked ? "white" : "black");
 
-                // Update the scalp map and the EEG plot
+                // Update the scalp map and the EEG plots
                 update(state.ranges);
                 updateEEG(electrodes.filter(d => d.checked).map(d => d.name));
                 var id = loc[i].label;
+                // Show appropriate name and value on tooltip
                 var msg = "";
                 if (checkbox.checked) {
                     msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
@@ -223,6 +238,7 @@ function ScalpMapChart(data, locations) {
 
         circles.push(circle);
     }
+    // Initialize brushed at left-most point
     update([0, 4000]);
     state.ranges = [0, 4000];
     // Compute the RBF diffusion
@@ -238,6 +254,7 @@ function ScalpMapChart(data, locations) {
             circle.on("mouseover", function () {
                 d3.select("#tooltip").style("visibility", "visible");
                 var id = this.id.slice(7);
+                // Show the tooltip on hover
                 var msg = "";
                 if (document.getElementById(id).checked) {
                     msg = id + "<br>" + "Value: " + state.electrodes.find(x => x.name === id).z.toFixed(3);
@@ -260,6 +277,7 @@ function ScalpMapChart(data, locations) {
         })
     });
 
+    // Scale down circles
     grid.on("pointerleave", () => {
         circles.forEach((circle) => {
             circle.attr("r", 0);
@@ -267,6 +285,7 @@ function ScalpMapChart(data, locations) {
     });
 }
 
+// Function that updates the interpolation on the scalp map based on a new selection
 function update_z(electrodes) {
     var points_xy = [];
     var z_values = [];
@@ -290,30 +309,25 @@ function update_z(electrodes) {
             interpolated_xy.push([i, j]);
         }
     }
+    // Generate an appropriate color based on the interpolated values
     interpolateRGB(interpolated_z, interpolated_xy);
 }
 
-//function to interpolateRGB values between [min,max] for selected amplitude values
+// Function to interpolateRGB values between [min,max] for selected amplitude values
 function interpolateRGB(value_arr, coord_arr) {
-    //red, yellow, green, light_blue, blue
+    //blue, light_blue, green, yellow, red
     var colors = ["#ff0000", "#fbff00", "#00ff1a", "#00f7ff", "#0400ff"]
 
-    //var max = Math.max.apply(null, value_arr);
-    //var min = Math.min.apply(null, value_arr);
-
+    // Decrease min/max values since the selection is averaged
+    // Higher min/max reesults in a lower details with color contrast (only 5 are used)
     var max = state.dataset_max / 10;
     var min = state.dataset_min / 10;
 
-    //Build domain values based on the received value_arr
-
+    //Build domain values based on the min/max values
     var increment = (Math.abs(min) + Math.abs(max)) / (colors.length - 1);
     var domain = [min, min + increment, 0, increment, max];
-    // for (var i = 0; i < colors.length - 2; i++) {
-    //   var previous = domain[domain.length - 1];
-    //   domain.push(previous + increment);
-    // }
-    //domain.push(max);
 
+    // Retrieving colors based on their value in the specified domain
     var getColor = d3.scaleLinear()
         .domain(domain)
         .range(colors);
@@ -328,6 +342,7 @@ function interpolateRGB(value_arr, coord_arr) {
         .domain(domain.reverse())
         .range([0, 100]);
 
+    // Fill up legend ticks
     var ticks = scale.ticks();
     ticks.push(-40, -50);
 
@@ -337,9 +352,10 @@ function interpolateRGB(value_arr, coord_arr) {
         .tickValues(ticks);
 
     legend.select("g").call(y_axis).attr("font-family", "'Gill Sans MT', sans-serif");
-    legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6");
+    legend.select("g").call(y_axis).select(".domain").attr("d", "M 6 0 H 0 V 340 H 6"); //Extend legend axis line
 }
 
+// Function that creates the PSD plot element of our solution
 function PSDChart(data) {
     state.width = 700;
     state.height = 480;
@@ -401,6 +417,8 @@ function PSDChart(data) {
     }
 }
 
+// Function that updates the state of the solution based on the current selection
+// range_vals: selected brushed time interval
 function update(range_vals) {
 
     if (range_vals === undefined) {
@@ -420,16 +438,16 @@ function update(range_vals) {
         var id = "#cell" + electrode.x + "_" + electrode.y; // Used to update the state of the electrodes
         if (check.checked) {
             checked.push(state.value_names[i]);
-            d3.select(id).style("fill", "white");
+            d3.select(id).style("fill", "white"); // electrode is checked, fill in white
             state.electrodes.find(x => x.name === state.value_names[i]).checked = true;
         } else {
-            d3.select(id).style("fill", "black");
+            d3.select(id).style("fill", "black"); // electrode is unchecked, fill in black
             state.electrodes.find(x => x.name === state.value_names[i]).checked = false;
         }
     }
     state.psds = {};
     var xy = [];
-    for (var i = 0; i < checked.length; i++) {
+    for (var i = 0; i < checked.length; i++) { // Loop over selected electrodes
         var ranged_data = []
         var sum = 0;
         for (var j = parseInt(range_vals[0]); j < Math.min(parseInt(range_vals[1]), state.data_length); j++) {
@@ -461,6 +479,7 @@ function update(range_vals) {
     update_z(state.electrodes);
 }
 
+// Function that adds the scale on the PSD plot
 function addScale(x, y, svg, title) {
     svg.append("g")
         .attr("transform", "translate(0," + state.height + ")")
@@ -569,6 +588,7 @@ function addBrush(xScale, svg, width, height, margin) {
         } else {
             // Get the newest brush location
             var selectionRange = selection.map(xScale.invert).map(d => parseFloat(d) - brush_size);
+            // Disabling live update, only shows the effect of the selection on mouse-release
             if (state.liveUpdate || (!state.live && event.type === 'end')) {
                 if (state.svg) {
                     // Update PSD and scalp map based on selection
@@ -624,6 +644,7 @@ const getExtents = data => d3.extent(data.columns
     .map(c => [c,
         data.map(v => v[c])]).flatMap(e => d3.extent(e[1].map(d => parseFloat(d) / 5))))
 
+// Initialize the eeg plots for each electrode in the data
 const ChannelsChart = (data, eventData) => {
     const grouped = getGrouped(data)
     const extents = getExtents(data)
@@ -641,7 +662,6 @@ const ChannelsChart = (data, eventData) => {
     }
 
     // Run the sampler
-
     state.eeg = {}
 
     // Dimensions:
@@ -683,7 +703,7 @@ const ChannelsChart = (data, eventData) => {
         .attr("width", margin.left + width + margin.right)
         .attr("height", margin.top + height + margin.bottom + (padding * grouped.size));
 
-    //y-axis label
+    // y-axis label
     svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", 15)
@@ -691,14 +711,14 @@ const ChannelsChart = (data, eventData) => {
         .text("Electrode Labels")
         .attr("font-family", "'Gill Sans MT', sans-serif");
 
-    //x-axis label
+    // x-axis label
     svg.append("text")
         .attr("y", height + 100)
         .attr("x", width / 2)
         .attr("font-family", "'Gill Sans MT', sans-serif")
         .text("Time(ms)");
 
-    //Title
+    // Title
     svg.append("text")
         .attr("y", 50)
         .attr("x", width / 2)
@@ -742,20 +762,9 @@ const ChannelsChart = (data, eventData) => {
                 (d[1])
         })
         .attr("stroke", "#000000")
-        // .attr("stroke-width", 1)
         .attr("fill", "none")
 
-    // // Plot names if needed:
-    // plots.append("text")
-    // .attr("x", plotWidth/2)
-    // .attr("y", -10)
-    // .text(function(d) {
-    // return d[1][0].name;
-    // })
-    // .attr("text-anchor","middle");
-
     // Plot axes 
-
     // Lower x axis
     svg.append("g")
         .attr("transform", "translate(" + [margin.left, grouped.size * plotHeight + margin.top] + ")")
@@ -764,9 +773,7 @@ const ChannelsChart = (data, eventData) => {
         ).attr("font-family", "'Gill Sans MT', sans-serif");
 
     // y axis
-
     const activeNames = d3.map(plots.data(), d => d[0])
-
     plots.each((d, i) => svg.append("g").attr('class', `yaxis`)
         .attr("transform", "translate(" + [margin.left, i * plotHeight + margin.top] + ")")
         .call(d3.axisLeft(yScale)
@@ -784,7 +791,6 @@ const ChannelsChart = (data, eventData) => {
 
 function updateEEG(active) {
     // Update the EEG chart based on active signals
-
     // Calculate new plot height of each signal
     const plotHeight = (state.eeg.height - state.eeg.padding * 2) / active.length - state.eeg.padding;
 
@@ -819,6 +825,7 @@ function updateEEG(active) {
         })
 }
 
+// Toggles the live update functionality
 function toggleLiveUpdate() {
     var checkBox = document.getElementById("liveUpdate");
 
@@ -831,7 +838,7 @@ const formatDataForPSD = (eegData) => eegData.columns
         data: eegData.map(v => parseFloat(v[c]))
     }))
 
-
+// Unimplemented embedding for an ERP plot
 const formatERPData = (eegData, eventData) => {
     // Formats data for the events ERP events
     const erpTimeIdx = [...Array(128).keys()]
