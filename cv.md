@@ -12,11 +12,13 @@ title: CV
 
 ## Experience
 
+October 2026 - present: **Visiting Researcher** - ESA Φ-lab - Frascati, Italy
+
 May 2026 - present: **Technical Staff** - Mark Kac Jagiellonian Human-Centered AI Lab, Center for Complex Systems Research, Jagiellonian University - Kraków, Poland
 
-Mar 2026 - present: **Researcher** - Jagiellonian University - Kraków, Poland
+Mar 2026 - May 2026: **Researcher** - Jagiellonian University - Kraków, Poland
 
-Nov 2024 - January 2026: **Research Software Engineer** - MI2 Lab (current CCAI) - Warsaw, Poland
+Nov 2024 - June 2025: **Research Software Engineer** - MI2 Lab (current CCAI) - Warsaw, Poland
 
 Sep 2024 - Oct 2025: **Software Engineer I** - Qualtrics - Kraków, Poland
 

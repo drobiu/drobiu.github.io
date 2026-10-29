@@ -26,9 +26,12 @@ description: >
 mission: >
   TODO.
 news:
-  - date: "July 2026"
+  - date: "October 2026"
     text: >
-      WIP.
+      I started my research visit stay at ESA Φ-lab in Frascati, Italy where I'll work on interpreting multimodal foundation models in Earth observation.
+  - date: "August 2026"
+    text: >
+      Our work "Evaluating Data and Explanation Representations for Clinical XAI in Conduction Disorder Classification" received the best paper of the Explimed-EASi workshop at IJCAI-ECAI 2026.
 # baseurl: "/athena" # the subpath of your site, e.g. /blog
 url: "https://drobiu.github.io" # the base hostname & protocol for your site
 github_repo: drobiu.github.io # the GitHub repo name for your project
@@ -43,7 +46,7 @@ github_username: drobiu
 theme_color: light
 
 # Seo
-tagline: Advancing AI interpretability in expert systems
+tagline: Advancing AI interpretability in multimodal models
 
 # Build settings
 markdown: kramdown
