@@ -46,7 +46,7 @@ github_username: drobiu
 theme_color: light
 
 # Seo
-tagline: Advancing AI interpretability in multimodal models
+tagline: Advancing interpretability in multimodal AI models
 
 # Build settings
 markdown: kramdown
