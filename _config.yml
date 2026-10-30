@@ -17,10 +17,9 @@ remote_theme: lgalke/athena@master
 # in the templates via {{ site.myvariable }}.
 title: Karol Dobiczek
 description: >
-  PhD Candidate<br/>
-  Jagiellonian University in Krakow<br/>
+  PhD Researcher<br/>
+  Jagiellonian University in Kraków<br/>
   Faculty of Physics, Astronomy and Applied Computer Science<br/>
-  Institute of Applied Computer Science<br/>
   Department of Human-Centered Artificial Intelligence<br/>
   Mark Kac Center for Complex Systems Research<br/>
 # mission: >
